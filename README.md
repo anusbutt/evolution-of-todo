@@ -1,379 +1,206 @@
-# Phase 2 - Full-Stack Web Application
+# Task Management Application with AI Chatbot
 
-A modern, scalable task management web application built with Next.js 16, FastAPI, and PostgreSQL. This project transforms the Phase 1 console application into a multi-user web platform with authentication, persistent storage, and responsive design.
+A modern, full-stack task management application featuring an AI-powered chatbot for natural language task management. Built with Next.js 16, FastAPI, and integrated with Google's Gemini AI.
 
 ## Features
 
-- **User Authentication**: Secure signup/login with JWT tokens (7-day expiration)
-- **Task Management**: Create, view, edit, delete, and mark tasks complete
-- **User Isolation**: Each user sees only their own tasks
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **Dark Mode**: Toggle between light and dark themes
-- **Search**: Filter tasks by title or description
-- **Statistics**: View task completion metrics
+### Core Features
+- **User Authentication**: Secure signup/login with JWT tokens
+- **Task Management**: Create, view, edit, delete, and complete tasks
+- **User Isolation**: Each user manages their own tasks
+- **Responsive Design**: Desktop, tablet, and mobile support
+- **Dark Mode**: Light/dark theme toggle
+
+### AI Chatbot (Phase 3)
+- **Natural Language Task Creation**: "Add buy groceries"
+- **Task Viewing**: "Show my tasks"
+- **Task Completion**: "Mark task 1 as done"
+- **Task Deletion**: "Delete task 2"
+- **Task Updates**: "Change task 1 to buy milk"
 
 ## Tech Stack
 
-### Frontend
-- **Framework**: Next.js 16+ (App Router)
-- **Language**: TypeScript 5.0+
-- **Styling**: Tailwind CSS 4+
-- **Forms**: React Hook Form 7+ with Zod validation
-- **Testing**: Vitest, React Testing Library, Playwright
-
-### Backend
-- **Framework**: FastAPI 0.115+
-- **Language**: Python 3.13+
-- **ORM**: SQLModel 0.0.22+
-- **Database**: Neon Serverless PostgreSQL 16+
-- **Migrations**: Alembic 1.13+
-- **Testing**: pytest, pytest-asyncio, httpx
-
-### Authentication
-- **Library**: Better Auth (JWT tokens)
-- **Storage**: httpOnly cookies (XSS protection)
-- **Security**: SameSite=Strict, HTTPS enforced
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 16, TypeScript, Tailwind CSS |
+| Backend | FastAPI, Python 3.13+, SQLModel |
+| Database | PostgreSQL 16+ (Neon Serverless) |
+| AI | Google Gemini API (gemini-2.0-flash) |
+| Auth | JWT with httpOnly cookies |
 
 ## Project Structure
 
 ```
 hackathon_II/
-├── frontend/               # Next.js 16 application
-│   ├── app/                # App Router pages
-│   │   ├── (auth)/         # Authentication routes
-│   │   └── (dashboard)/    # Protected dashboard routes
-│   ├── components/         # Reusable React components
-│   │   ├── ui/             # UI primitives (Button, Input, Modal)
-│   │   ├── tasks/          # Task-specific components
-│   │   ├── auth/           # Authentication forms
-│   │   └── layout/         # Layout components (Header, Footer)
-│   ├── lib/                # Utilities and API client
-│   ├── types/              # TypeScript type definitions
-│   └── tests/              # Unit and E2E tests
+├── frontend/                 # Next.js application
+│   ├── app/                  # App Router pages
+│   │   ├── (auth)/           # Login, Signup pages
+│   │   └── (dashboard)/      # Protected task pages
+│   ├── components/           # React components
+│   │   ├── chat/             # AI chatbot components
+│   │   ├── tasks/            # Task management components
+│   │   ├── ui/               # UI primitives
+│   │   └── layout/           # Header, Footer
+│   ├── services/             # API service clients
+│   ├── lib/                  # Utilities
+│   └── types/                # TypeScript definitions
 │
-├── backend/                # FastAPI application
+├── backend/                  # FastAPI application
 │   ├── app/
-│   │   ├── models/         # SQLModel database models
-│   │   ├── schemas/        # Pydantic request/response schemas
-│   │   ├── services/       # Business logic layer
-│   │   ├── routes/         # API endpoints
-│   │   ├── middleware/     # Auth, CORS, rate limiting
-│   │   └── utils/          # Security and helper functions
-│   ├── alembic/            # Database migrations
-│   └── tests/              # Unit, integration, contract tests
+│   │   ├── models/           # Database models
+│   │   ├── schemas/          # Request/Response schemas
+│   │   ├── services/         # Business logic
+│   │   ├── routes/           # API endpoints
+│   │   ├── middleware/       # Auth, CORS, rate limiting
+│   │   └── utils/            # Helpers
+│   ├── alembic/              # Database migrations
+│   └── tests/                # Backend tests
 │
-├── specs/                  # Feature specifications
-└── history/                # Development history (ADRs, PHRs)
+├── mcp-server/               # MCP Tool Server (AI tools)
+│   ├── tools/                # Task management tools
+│   ├── models/               # Shared models
+│   └── server.py             # MCP server entry
+│
+├── specs/                    # Feature specifications
+│   ├── 002-phase-02-web-app/
+│   └── 003-phase-03-ai-chatbot/
+│
+└── history/                  # Development records
+    ├── adr/                  # Architecture decisions
+    └── prompts/              # Prompt history
 ```
 
-## Prerequisites
+## Quick Start
 
-- **Python**: 3.13 or higher
-- **Node.js**: 22.x or higher
-- **PostgreSQL**: 16+ (via Neon or local)
-- **Git**: For version control
+### Prerequisites
+- Python 3.13+
+- Node.js 22+
+- PostgreSQL 16+ (or Neon account)
+- Gemini API key
 
-## Setup Instructions
+### 1. Environment Setup
 
-### 1. Clone Repository
-
-```bash
-git clone <repository-url>
-cd hackathon_II
+**Backend** (`backend/.env`):
+```env
+DATABASE_URL=postgresql+asyncpg://user:pass@host/db?ssl=require
+JWT_SECRET=your-secret-key
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
-### 2. Backend Setup
+**Frontend** (`frontend/.env.local`):
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-**Option A: Using UV (Recommended)**
+### 2. Install Dependencies
+
 ```bash
-# Navigate to backend directory
+# Backend
 cd backend
-
-# Install UV (if not already installed)
-# Windows:
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-# macOS/Linux:
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create virtual environment and install dependencies
-uv sync
-
-# Activate virtual environment
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
-# Copy environment file and configure
-cp .env.example .env
-# Edit .env with your database credentials and JWT secret
-
-# Initialize database migrations
-alembic upgrade head
-
-# Run development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**Option B: Using pip**
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
 pip install -r requirements.txt
 
-# Copy environment file and configure
-cp .env.example .env
-# Edit .env with your database credentials and JWT secret
-
-# Initialize database migrations
-alembic upgrade head
-
-# Run development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Frontend
+cd frontend
+npm install
 ```
 
-Backend will be available at `http://localhost:8000`
-API documentation at `http://localhost:8000/docs`
-
-### 3. Frontend Setup
+### 3. Run Database Migrations
 
 ```bash
-# Navigate to frontend directory (from project root)
+cd backend
+alembic upgrade head
+```
+
+### 4. Start Services
+
+```bash
+# Terminal 1: Backend (port 8000)
+cd backend
+uvicorn app.main:app --reload --port 8000
+
+# Terminal 2: Frontend (port 3000)
 cd frontend
-
-# Install dependencies
-npm install
-
-# Copy environment file and configure
-cp .env.local.example .env.local
-# Edit .env.local with backend API URL (default: http://localhost:8000)
-
-# Run development server
 npm run dev
 ```
 
-Frontend will be available at `http://localhost:3000`
+### 5. Access Application
 
-### 4. Database Setup (Neon)
-
-1. Sign up at [neon.tech](https://neon.tech)
-2. Create a new project
-3. Copy the connection string (format: `postgresql+asyncpg://...`)
-4. Add to `backend/.env` as `DATABASE_URL`
-
-### 5. Verify Setup
-
-1. Backend: Visit `http://localhost:8000/health` - should return `{"status": "healthy"}`
-2. Frontend: Visit `http://localhost:3000` - should show landing page
-3. Database: Run `alembic current` in backend directory - should show migration version
-
-## Development Workflow
-
-### Running Tests
-
-**Backend:**
-```bash
-cd backend
-pytest                          # Run all tests
-pytest --cov=app               # With coverage report
-pytest tests/unit              # Unit tests only
-pytest tests/integration       # Integration tests only
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm test                        # Run unit tests
-npm run test:coverage          # With coverage report
-npm run test:e2e               # Run E2E tests with Playwright
-```
-
-### Code Quality
-
-**Backend:**
-```bash
-cd backend
-ruff check .                    # Linting
-black .                         # Formatting
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm run lint                    # ESLint
-npm run format                  # Prettier
-npm run type-check             # TypeScript check
-```
-
-### Database Migrations
-
-```bash
-cd backend
-
-# Create new migration after model changes
-alembic revision --autogenerate -m "description"
-
-# Apply migrations
-alembic upgrade head
-
-# Rollback one migration
-alembic downgrade -1
-
-# View migration history
-alembic history
-```
-
-## Environment Variables
-
-### Backend (.env)
-- `DATABASE_URL`: PostgreSQL connection string (asyncpg format)
-- `JWT_SECRET`: Secret key for JWT token signing
-- `JWT_ALGORITHM`: Algorithm for JWT (default: HS256)
-- `JWT_EXPIRATION_DAYS`: Token validity period (default: 7)
-- `CORS_ORIGINS`: Allowed frontend origins (comma-separated)
-- `ENVIRONMENT`: development/production
-- `RATE_LIMIT_PER_MINUTE`: API rate limit per user (default: 100)
-
-### Frontend (.env.local)
-- `NEXT_PUBLIC_API_URL`: Backend API base URL
+Open http://localhost:3000
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/signup` - Create new user account
-- `POST /api/auth/login` - Login with email/password
-- `POST /api/auth/logout` - Clear authentication session
-- `GET /api/auth/me` - Get current user info (protected)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/auth/signup | Create account |
+| POST | /api/auth/login | Login |
+| POST | /api/auth/logout | Logout |
+| GET | /api/auth/me | Current user |
 
 ### Tasks
-- `GET /api/tasks` - List all user's tasks (protected)
-- `POST /api/tasks` - Create new task (protected)
-- `GET /api/tasks/{id}` - Get task by ID (protected)
-- `PUT /api/tasks/{id}` - Update task (protected)
-- `DELETE /api/tasks/{id}` - Delete task (protected)
-- `PATCH /api/tasks/{id}/status` - Toggle task completion (protected)
-- `GET /api/tasks/stats` - Get task statistics (protected)
-- `GET /api/tasks/search?q=query` - Search tasks (protected)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/tasks | List tasks |
+| POST | /api/tasks | Create task |
+| PUT | /api/tasks/{id} | Update task |
+| DELETE | /api/tasks/{id} | Delete task |
+| PATCH | /api/tasks/{id}/status | Toggle complete |
+| GET | /api/tasks/stats | Task statistics |
 
-### Health
-- `GET /health` - Health check endpoint
+### Chat
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/chat | Send message to AI |
 
-## Performance Goals
+## Chat Commands
 
-- API response time: < 500ms p95 for CRUD operations
-- Page load time: < 2 seconds for task list (up to 500 tasks)
-- Database query time: < 100ms for task listing
-- Frontend bundle size: < 500KB initial load
-- Concurrent users: 100 simultaneous users without degradation
+| Command | Example |
+|---------|---------|
+| Add task | "Add buy groceries" |
+| List tasks | "Show my tasks" |
+| Complete | "Mark task 1 as done" |
+| Delete | "Delete task 2" |
+| Update | "Change task 1 to buy milk" |
 
-## Security Features
+## Development
 
-- **JWT Tokens**: 7-day expiration with httpOnly cookies
-- **Password Hashing**: Bcrypt/Argon2 via Better Auth
-- **User Isolation**: All queries filter by user_id
-- **Rate Limiting**: 100 requests/minute per user
-- **Input Validation**: Dual-layer (client Zod + server Pydantic)
-- **CORS**: Configured for frontend origin only
-- **HTTPS**: Enforced in production
-- **SQL Injection Prevention**: Parameterized queries via SQLModel
+### Running Tests
 
-## Testing Coverage
+```bash
+# Backend
+cd backend
+pytest
 
-- Minimum 75% code coverage (constitution requirement)
-- Unit tests: Models, services, utilities
-- Integration tests: API endpoints, database operations
-- E2E tests: Critical user flows (signup → login → tasks → logout)
+# Frontend
+cd frontend
+npm test
+```
 
-## Deployment
+### Code Quality
 
-### Frontend (Vercel)
-1. Connect GitHub repository to Vercel
-2. Set `NEXT_PUBLIC_API_URL` environment variable
-3. Deploy from `main` branch
-
-### Backend (Options)
-- **Vercel Serverless Functions**: Deploy alongside frontend
-- **Railway/Render**: Deploy as persistent API service
-- **AWS/GCP/Azure**: Deploy with container orchestration
-
-### Database (Neon)
-- Already hosted and configured
-- Connection pooling: 10 pool + 20 overflow
-- Automatic backups and scaling
+- Backend: Black, isort, mypy
+- Frontend: ESLint, Prettier
 
 ## Troubleshooting
 
-### Backend Issues
-
-**Database Connection Error:**
+### Database Connection
 ```bash
-# Verify DATABASE_URL format
-postgresql+asyncpg://user:password@host:port/dbname
-
-# Test connection
-python -c "import asyncpg; print('asyncpg installed')"
+# Ensure DATABASE_URL uses asyncpg driver
+postgresql+asyncpg://user:pass@host/db?ssl=require
 ```
 
-**Migration Conflicts:**
+### Chat Not Working
+1. Verify `GEMINI_API_KEY` is set in backend/.env
+2. Check backend logs for API errors
+3. Ensure user is logged in
+
+### Build Errors
 ```bash
-# Reset to specific version
-alembic downgrade <revision>
-
-# Regenerate migration
-alembic revision --autogenerate -m "description"
+# Clear caches
+rm -rf frontend/.next backend/__pycache__
+npm install && pip install -r requirements.txt
 ```
-
-### Frontend Issues
-
-**Build Errors:**
-```bash
-# Clear cache
-rm -rf .next node_modules
-npm install
-npm run build
-```
-
-**API Connection Issues:**
-```bash
-# Verify NEXT_PUBLIC_API_URL in .env.local
-echo $NEXT_PUBLIC_API_URL
-
-# Check CORS settings in backend
-```
-
-## Contributing
-
-1. Create feature branch from `main`
-2. Implement changes following code quality standards
-3. Run tests and ensure 75%+ coverage
-4. Commit with descriptive messages
-5. Create pull request with summary
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Documentation
-
-- Feature Specification: `specs/002-phase-02-web-app/spec.md`
-- Implementation Plan: `specs/002-phase-02-web-app/plan.md`
-- Task Breakdown: `specs/002-phase-02-web-app/tasks.md`
-- Architecture Decisions: `history/adr/`
-
-## Support
-
-For issues or questions:
-1. Check troubleshooting section above
-2. Review API documentation at `/docs` endpoint
-3. Consult feature specifications in `specs/` directory
+MIT License

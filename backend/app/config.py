@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # Rate Limiting
     rate_limit_per_minute: int = Field(default=100, alias="RATE_LIMIT_PER_MINUTE")
 
+    # AI Chatbot Configuration (Phase 3)
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    mcp_server_url: str = Field(default="http://localhost:5001", alias="MCP_SERVER_URL")
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS comma-separated string into list."""
