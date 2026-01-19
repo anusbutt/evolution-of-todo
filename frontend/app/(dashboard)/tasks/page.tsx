@@ -1,7 +1,9 @@
 // [Task]: T069-T071, T076, T079-T080, T087, T090-T091, T105 [US2, US3, US4, US6] | [Spec]: specs/002-phase-02-web-app/spec.md
+// [Task]: T026, T027, T028, T042-T045 [US6, US1] | [Spec]: specs/003-phase-03-ai-chatbot/spec.md
 /**
  * Tasks page - main task management interface.
- * Displays task list with add/edit/delete functionality, modal forms, and task statistics.
+ * Displays task list with add/edit/delete functionality, modal forms, task statistics,
+ * and AI chat sidebar for natural language task management.
  */
 'use client'
 
@@ -13,7 +15,9 @@ import { TaskSearch } from '@/components/tasks/task-search'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Button } from '@/components/ui/button'
+import { ChatSidebar, ChatToggle, type Message } from '@/components/chat'
 import { apiRequest, ApiError } from '@/lib/api-client'
+import { sendChatMessage } from '@/services/chat'
 import type { Task } from '@/types'
 
 interface TaskStatistics {
@@ -35,6 +39,20 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Chat sidebar state (Phase 3)
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<Message[]>([])
+  const [isChatLoading, setIsChatLoading] = useState(false)
+  // T065: Controlled chat input for preserving text on error
+  const [chatInputValue, setChatInputValue] = useState('')
+  // T063: Persist conversation_id in localStorage for session continuity
+  const [conversationId, setConversationId] = useState<string | undefined>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chat_conversation_id') || undefined
+    }
+    return undefined
+  })
 
   // Fetch tasks and stats on mount
   useEffect(() => {
@@ -186,6 +204,64 @@ export default function TasksPage() {
     }
   }
 
+  // T042-T045: Chat message handler connected to real API
+  const handleSendChatMessage = async (message: string) => {
+    // Add user message to chat
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: message,
+      timestamp: new Date(),
+    }
+    setChatMessages((prev) => [...prev, userMessage])
+    setIsChatLoading(true)
+    // T065: Clear input optimistically, will restore on error
+    setChatInputValue('')
+
+    try {
+      // T042: Call chat API service
+      const response = await sendChatMessage(message, conversationId)
+
+      // T043: Display AI response in ChatSidebar
+      const assistantMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response.response,
+        timestamp: new Date(response.timestamp),
+      }
+      setChatMessages((prev) => [...prev, assistantMessage])
+
+      // T063: Store conversation ID for subsequent messages and persist
+      setConversationId(response.conversation_id)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('chat_conversation_id', response.conversation_id)
+      }
+
+      // T045: Auto-refresh task list when task_updated is true
+      if (response.task_updated) {
+        await fetchTasks()
+        await fetchStats()
+      }
+    } catch (err) {
+      // T065: Restore input text on error
+      setChatInputValue(message)
+      // T061: Error handling - show user-friendly error message
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: err instanceof ApiError
+          ? `Sorry, I encountered an error: ${err.message}`
+          : 'Sorry, I\'m having trouble processing that request. Please try again.',
+        timestamp: new Date(),
+      }
+      setChatMessages((prev) => [...prev, errorMessage])
+      console.error('Chat error:', err)
+    } finally {
+      // T044: Loading indicator is handled by isChatLoading state
+      setIsChatLoading(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -271,6 +347,21 @@ export default function TasksPage() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingTask(null)}
         isLoading={isDeleting}
+      />
+
+      {/* Chat Sidebar (Phase 3) */}
+      <ChatToggle
+        isOpen={isChatOpen}
+        onClick={() => setIsChatOpen(!isChatOpen)}
+      />
+      <ChatSidebar
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        messages={chatMessages}
+        onSendMessage={handleSendChatMessage}
+        isLoading={isChatLoading}
+        inputValue={chatInputValue}
+        onInputChange={setChatInputValue}
       />
     </div>
   )

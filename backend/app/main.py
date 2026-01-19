@@ -14,7 +14,7 @@ from slowapi.errors import RateLimitExceeded
 from .config import settings
 from .middleware.auth import auth_middleware
 from .middleware.rate_limit import limiter
-from .routes import health, auth, tasks
+from .routes import health, auth, tasks, chat
 from .database import create_db_and_tables, close_db_connection
 
 # Configure structured logging
@@ -157,6 +157,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(health.router, tags=["Health"])
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(tasks.router, tags=["Tasks"])
+app.include_router(chat.router, tags=["Chat"])  # T040: Phase 3 AI Chatbot
 
 
 @app.on_event("startup")

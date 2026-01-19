@@ -18,23 +18,18 @@ async function getCurrentUser() {
     redirect('/login')
   }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      headers: {
-        Cookie: `access_token=${token.value}`,
-      },
-      cache: 'no-store',
-    })
+  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: {
+      Cookie: `access_token=${token.value}`,
+    },
+    cache: 'no-store',
+  }).catch(() => null)
 
-    if (!response.ok) {
-      redirect('/login')
-    }
-
-    return await response.json()
-  } catch (error) {
-    console.error('Failed to fetch user:', error)
+  if (!response || !response.ok) {
     redirect('/login')
   }
+
+  return await response.json()
 }
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {

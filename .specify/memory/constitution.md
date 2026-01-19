@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report:
-- Version change: 1.0.0 (initial ratification)
-- New principles: I-VII (Spec-Driven Development, Single Source of Truth, AI-Native Development, Progressive Enhancement, Feature Scope Discipline, Technology Stack Constraints, Quality Standards)
-- Added sections: Code Quality Standards, Testing Requirements, Security Principles, Architecture Guidelines, AI Agent Development, Cloud-Native Principles, Deployment Standards, Documentation Requirements, Workflow Governance
+- Version change: 1.1.0 (Phase III tech stack amendment)
+- Amended sections: Phase III Technology Stack, Deployment Standards Phase III
+- Changes: OpenAI ChatKit → Custom Chat UI, OpenAI API → Gemini API (OpenAI-compatible), Added MCP transport (HTTP/SSE), Added MCP Server as separate service
 - Templates requiring updates: ✅ All templates compatible with this constitution
-- Follow-up TODOs: None - all placeholders filled
+- Follow-up TODOs: None
 -->
 
 # Evolution of Todo Constitution
@@ -15,7 +15,7 @@ This constitution defines the immutable principles, standards, and constraints t
 
 - **Phase I**: Console App (Python, in-memory)
 - **Phase II**: Full-Stack Web (Next.js + FastAPI + Neon DB)
-- **Phase III**: AI Chatbot (OpenAI Agents SDK + MCP)
+- **Phase III**: AI Chatbot (OpenAI Agents SDK + Gemini + MCP)
 - **Phase IV**: Local Kubernetes (Minikube + Helm + kubectl-ai)
 - **Phase V**: Cloud Native (AKS/GKE/OKE + Kafka + Dapr)
 
@@ -112,11 +112,16 @@ Each phase builds on the previous - NO SKIPPING PHASES:
 - **Coverage**: Minimum 75%
 
 #### Phase III: AI Chatbot
-- **AI UI**: OpenAI ChatKit
-- **AI Logic**: OpenAI Agents SDK
+- **AI UI**: Custom Chat Sidebar (React + Tailwind, integrated in Tasks page)
+- **AI Logic**: OpenAI Agents SDK (with Gemini backend)
+- **LLM Provider**: Gemini API via OpenAI-compatible endpoint (`generativelanguage.googleapis.com`)
+- **LLM Model**: `gemini-2.5-flash`
 - **Tool Interface**: Official MCP SDK (Python)
+- **MCP Server**: Separate service (port 5001)
+- **MCP Transport**: HTTP with SSE (Server-Sent Events)
 - **MCP Tools**: `add_task`, `list_tasks`, `complete_task`, `delete_task`, `update_task`
-- **Architecture**: Stateless chat endpoint, conversation state persisted in database
+- **Architecture**: Stateless chat endpoint, MCP server as independent service
+- **Conversations**: Session-based (cleared on logout)
 - **Models**: Task, Conversation, Message
 
 #### Phase IV: Local Kubernetes
@@ -340,9 +345,11 @@ Each phase builds on the previous - NO SKIPPING PHASES:
 - **Environment**: `.env.local` for development, Vercel environment variables for production
 
 ### Phase III: Chatbot
-- Same as Phase II + OpenAI API integration
-- **Domain Allowlist**: Configure OpenAI ChatKit domain allowlist (required for hosted ChatKit)
-- **Environment Variables**: `NEXT_PUBLIC_OPENAI_DOMAIN_KEY`, `OPENAI_API_KEY`
+- Same as Phase II + Gemini API integration
+- **MCP Server**: Runs as separate Python service on port 5001
+- **Environment Variables**: `GEMINI_API_KEY`
+- **Services**: Backend (8000), MCP Server (5001), Frontend (3000)
+- **Chat UI**: Custom sidebar component on tasks page (no external ChatKit dependency)
 
 ### Phase IV: Local Kubernetes
 - **Platform**: Minikube with resource limits (4 CPU, 8GB RAM)
@@ -556,8 +563,8 @@ If conflicts arise between levels, the higher level wins.
 
 ---
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Ratified**: 2026-01-09
-**Last Amended**: 2026-01-09
+**Last Amended**: 2026-01-15
 **Architect**: [Your Name]
-**Engineer**: Claude Code (Sonnet 4.5)
+**Engineer**: Claude Code (Opus 4.5)

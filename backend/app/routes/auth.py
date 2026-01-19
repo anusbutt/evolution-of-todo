@@ -114,12 +114,17 @@ async def login(
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    request: Request,
+    response: Response,
+    session: AsyncSession = Depends(get_async_session)
+):
     """
     Logout current user by clearing the access token cookie.
+    T062: Also clears conversation state flag for frontend.
 
     Response:
-        - 200: Success message
+        - 200: Success message with clear_conversations flag
 
     Side Effect:
         Deletes access_token cookie
@@ -131,7 +136,11 @@ async def logout(response: Response):
         samesite="strict"
     )
 
-    return {"message": "Logged out successfully"}
+    # T062: Return flag to clear frontend conversation state
+    return {
+        "message": "Logged out successfully",
+        "clear_conversations": True  # Signal frontend to clear chat state
+    }
 
 
 @router.get("/me", response_model=UserResponse)

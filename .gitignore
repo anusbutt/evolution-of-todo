@@ -79,3 +79,16 @@ alembic/versions/*.py
 
 # Project specific
 *.tmp
+nul
+Untitled
+
+# Build artifacts
+*.egg-info/
+
+# Docker
+*.log
+
+# Temporary files
+*.bak
+*.swp
+*~

@@ -32,6 +32,9 @@
       "@/lib/*": [
         "./lib/*"
       ],
+      "@/services/*": [
+        "./services/*"
+      ],
       "@/types/*": [
         "./types/*"
       ],
