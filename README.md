@@ -1,6 +1,6 @@
 # Task Management Application with AI Chatbot
 
-A modern, full-stack task management application featuring an AI-powered chatbot for natural language task management. Built with Next.js 16, FastAPI, and integrated with Google's Gemini AI.
+A modern, full-stack task management application featuring an AI-powered chatbot for natural language task management. Built with Next.js 16, FastAPI, and integrated with Google's Gemini AI. Deployable to Kubernetes using Helm.
 
 ## Features
 
@@ -18,6 +18,14 @@ A modern, full-stack task management application featuring an AI-powered chatbot
 - **Task Deletion**: "Delete task 2"
 - **Task Updates**: "Change task 1 to buy milk"
 
+### Kubernetes Deployment (Phase 4)
+- **Docker Containerization**: All services packaged as containers
+- **Helm Chart**: One-command deployment to Kubernetes
+- **Ingress Routing**: Single URL access (http://todo.local)
+- **Self-Healing**: Automatic pod restart on failure
+- **Zero-Downtime Updates**: Rolling deployment strategy
+- **Configuration Management**: ConfigMaps and Secrets
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -27,6 +35,9 @@ A modern, full-stack task management application featuring an AI-powered chatbot
 | Database | PostgreSQL 16+ (Neon Serverless) |
 | AI | Google Gemini API (gemini-2.0-flash) |
 | Auth | JWT with httpOnly cookies |
+| Containers | Docker |
+| Orchestration | Kubernetes, Helm |
+| Ingress | NGINX Ingress Controller |
 
 ## Project Structure
 
@@ -61,9 +72,17 @@ hackathon_II/
 │   ├── models/               # Shared models
 │   └── server.py             # MCP server entry
 │
+├── deployment/               # Kubernetes deployment
+│   └── helm/
+│       └── todo-app/         # Helm chart
+│           ├── Chart.yaml    # Chart metadata
+│           ├── values.yaml   # Configuration
+│           └── templates/    # K8s resource templates
+│
 ├── specs/                    # Feature specifications
 │   ├── 002-phase-02-web-app/
-│   └── 003-phase-03-ai-chatbot/
+│   ├── 003-phase-03-ai-chatbot/
+│   └── 004-phase-04-kubernetes/
 │
 └── history/                  # Development records
     ├── adr/                  # Architecture decisions
@@ -126,6 +145,122 @@ npm run dev
 ### 5. Access Application
 
 Open http://localhost:3000
+
+---
+
+## Kubernetes Deployment (Phase 4)
+
+Deploy the entire application to Kubernetes with a single command.
+
+### Prerequisites
+
+- Docker Desktop
+- Minikube v1.32+
+- kubectl v1.29+
+- Helm v3.14+
+
+### Quick Deploy
+
+```bash
+# 1. Start Minikube
+minikube start --driver=docker
+minikube addons enable ingress
+
+# 2. Build Docker images
+docker build -t todo-frontend:latest ./frontend
+docker build -t todo-backend:latest ./backend
+docker build -t todo-mcp-server:latest ./mcp-server
+
+# 3. Load images into Minikube
+minikube image load todo-frontend:latest
+minikube image load todo-backend:latest
+minikube image load todo-mcp-server:latest
+
+# 4. Create secrets override file (override.yaml)
+cat > deployment/helm/override.yaml << EOF
+secrets:
+  databaseUrl: "postgresql+asyncpg://user:pass@host/db?ssl=require"
+  jwtSecret: "your-jwt-secret"
+  geminiApiKey: "your-gemini-api-key"
+EOF
+
+# 5. Deploy with Helm
+helm install todo-app ./deployment/helm/todo-app -n todo-app --create-namespace -f deployment/helm/override.yaml
+
+# 6. Start tunnel (keep running)
+minikube tunnel
+
+# 7. Add to hosts file
+# Windows: C:\Windows\System32\drivers\etc\hosts
+# Linux/Mac: /etc/hosts
+# Add: 127.0.0.1 todo.local
+
+# 8. Access application
+# Open: http://todo.local
+```
+
+### Kubernetes Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     KUBERNETES CLUSTER                          │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                    NAMESPACE: todo-app                    │  │
+│  │                                                           │  │
+│  │   ┌─────────┐   ┌─────────┐   ┌─────────────┐            │  │
+│  │   │Frontend │   │ Backend │   │ MCP-Server  │            │  │
+│  │   │  :3000  │   │  :8000  │   │   :5001     │            │  │
+│  │   └────┬────┘   └────┬────┘   └─────────────┘            │  │
+│  │        │             │                                    │  │
+│  │        └──────┬──────┘                                    │  │
+│  │               │                                           │  │
+│  │        ┌──────┴──────┐                                    │  │
+│  │        │   INGRESS   │  /     → frontend                  │  │
+│  │        │ todo.local  │  /api/* → backend                  │  │
+│  │        └─────────────┘                                    │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Helm Commands
+
+```bash
+# Check deployment status
+kubectl get pods -n todo-app
+
+# View logs
+kubectl logs -n todo-app -l app=backend
+
+# Scale a service
+kubectl scale deployment backend -n todo-app --replicas=3
+
+# Upgrade deployment
+helm upgrade todo-app ./deployment/helm/todo-app -n todo-app -f deployment/helm/override.yaml
+
+# Rollback
+helm rollback todo-app -n todo-app
+
+# Uninstall
+helm uninstall todo-app -n todo-app
+kubectl delete namespace todo-app
+```
+
+### Docker Compose (Alternative)
+
+For simpler local development without Kubernetes:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+---
 
 ## API Endpoints
 
