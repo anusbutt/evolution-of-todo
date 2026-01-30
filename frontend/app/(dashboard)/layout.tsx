@@ -8,7 +8,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Server-side requests use Docker internal network, client-side uses host URL
+const API_BASE_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 async function getCurrentUser() {
   const cookieStore = await cookies()

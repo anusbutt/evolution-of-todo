@@ -58,7 +58,7 @@ async def signup(
         value=access_token,
         httponly=True,
         secure=settings.is_production,  # HTTPS only in production
-        samesite="strict",
+        samesite="lax",
         max_age=settings.jwt_expiration_days * 24 * 60 * 60  # Convert days to seconds
     )
 
@@ -106,7 +106,7 @@ async def login(
         value=access_token,
         httponly=True,
         secure=settings.is_production,
-        samesite="strict",
+        samesite="lax",
         max_age=settings.jwt_expiration_days * 24 * 60 * 60
     )
 
@@ -133,7 +133,7 @@ async def logout(
         key="access_token",
         httponly=True,
         secure=settings.is_production,
-        samesite="strict"
+        samesite="lax"
     )
 
     # T062: Return flag to clear frontend conversation state
