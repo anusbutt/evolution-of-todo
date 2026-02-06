@@ -13,6 +13,9 @@ COPY package*.json ./
 # Install dependencies (use ci for reproducible builds)
 RUN npm ci --legacy-peer-deps
 
+# Rebuild native modules for Linux (lightningcss requires this)
+RUN npm rebuild lightningcss
+
 # Copy source code
 COPY . .
 
