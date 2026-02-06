@@ -63,7 +63,7 @@ node_modules/
 out/
 .turbo/
 next-env.d.ts
-package-lock.json
+# package-lock.json  # Keep for CI/CD (npm ci requires it)
 yarn.lock
 pnpm-lock.yaml
 
