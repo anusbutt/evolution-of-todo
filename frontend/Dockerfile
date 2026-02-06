@@ -10,11 +10,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (use ci for reproducible builds)
-RUN npm ci --legacy-peer-deps
+# Install dependencies with optional deps (needed for lightningcss native modules)
+RUN npm install --legacy-peer-deps --include=optional
 
-# Rebuild native modules for Linux (lightningcss requires this)
-RUN npm rebuild lightningcss
+# Explicitly install lightningcss Linux binaries
+RUN npm install lightningcss-linux-x64-gnu --save-optional || true
 
 # Copy source code
 COPY . .
