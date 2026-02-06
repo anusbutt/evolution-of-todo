@@ -111,6 +111,29 @@ config:
   internalApiUrl: "http://backend:8000"
   corsOrigins: "http://todo.local,http://localhost:3000,http://127.0.0.1:3000"
 
+# Audit Service (disabled by default for local dev)
+auditService:
+  enabled: false
+  image:
+    repository: todo-audit-service
+    tag: latest
+    pullPolicy: Never
+  port: 5002
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Dapr configuration (disabled by default for local dev)
+dapr:
+  enabled: false
+  redpanda:
+    saslMechanism: "SHA-256"
+
 # Deployment strategy
 strategy:
   type: RollingUpdate

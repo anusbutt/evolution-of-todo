@@ -1,6 +1,7 @@
 // [Task]: T065 [P] [US2] | [Spec]: specs/002-phase-02-web-app/spec.md
+// [Task]: Phase 5 - Glassmorphism redesign
 /**
- * Dashboard layout wrapper for authenticated pages.
+ * Dashboard layout wrapper with gradient background and glass navigation.
  * Includes header with logout button and responsive padding.
  */
 import { ReactNode } from 'react'
@@ -37,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const user = await getCurrentUser()
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen gradient-bg dark:gradient-bg gradient-bg-light">
       <Header userName={user.name} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}

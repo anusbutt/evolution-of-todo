@@ -1,11 +1,15 @@
 # [Task]: T056 [US2] | [Spec]: specs/002-phase-02-web-app/spec.md
+# [Task]: T015 | [Spec]: specs/005-phase-05-cloud-native/spec.md - Added priority and tags
 """
 Pydantic schemas for task-related requests and responses.
 Provides validation and serialization for task API endpoints.
 """
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
+
+from app.models.task import Priority
+from app.schemas.tag import TagResponse
 
 
 class TaskCreate(BaseModel):
@@ -15,10 +19,14 @@ class TaskCreate(BaseModel):
     Validation:
         - title: 1-200 characters, non-empty
         - description: Optional, 0-1000 characters
+        - priority: P1 (High), P2 (Medium), P3 (Low) - default P2
+        - tag_ids: Optional list of tag IDs to associate
     """
 
     title: str = Field(..., min_length=1, max_length=200, description="Task title")
     description: Optional[str] = Field(default=None, max_length=1000, description="Task description")
+    priority: Priority = Field(default=Priority.P2, description="Task priority (P1=High, P2=Medium, P3=Low)")
+    tag_ids: Optional[List[int]] = Field(default=None, description="List of tag IDs to associate")
 
     @field_validator("title")
     @classmethod
@@ -39,6 +47,8 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     description: Optional[str] = Field(default=None, max_length=1000)
     completed: Optional[bool] = Field(default=None)
+    priority: Optional[Priority] = Field(default=None, description="Task priority")
+    tag_ids: Optional[List[int]] = Field(default=None, description="List of tag IDs to associate")
 
     @field_validator("title")
     @classmethod
@@ -61,11 +71,13 @@ class TaskResponse(BaseModel):
     title: str
     description: Optional[str]
     completed: bool
+    priority: Priority
+    tags: List[TagResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        from_attributes = True  # Allow creation from SQLModel instances
+        from_attributes = True
 
 
 class TaskListResponse(BaseModel):
@@ -77,6 +89,20 @@ class TaskListResponse(BaseModel):
 
     tasks: list[TaskResponse]
     total: int
+
+    class Config:
+        from_attributes = True
+
+
+class TaskStatsResponse(BaseModel):
+    """
+    Schema for task statistics response.
+    """
+
+    total: int
+    completed: int
+    pending: int
+    by_priority: dict[str, int] = Field(default_factory=dict)
 
     class Config:
         from_attributes = True

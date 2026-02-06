@@ -1,8 +1,24 @@
 // [Task]: T029 | [Spec]: specs/002-phase-02-web-app/spec.md
+// [Task]: T016 | [Spec]: specs/005-phase-05-cloud-native/spec.md - Added Priority and Tags
 /**
  * TypeScript type definitions for Phase 2 frontend.
  * Defines interfaces for User, Task, API responses, and errors.
  */
+
+/**
+ * Task priority levels.
+ */
+export type Priority = 'P1' | 'P2' | 'P3'
+
+/**
+ * Tag entity for categorizing tasks.
+ */
+export interface Tag {
+  id: number
+  name: string
+  color: string
+  created_at: string
+}
 
 /**
  * User entity representing an authenticated user.
@@ -24,6 +40,8 @@ export interface Task {
   title: string
   description: string | null
   completed: boolean
+  priority: Priority
+  tags: Tag[]
   created_at: string
   updated_at: string
 }
@@ -58,6 +76,8 @@ export interface TaskResponse {
   title: string
   description: string | null
   completed: boolean
+  priority: Priority
+  tags: Tag[]
   created_at: string
   updated_at: string
 }
@@ -78,6 +98,7 @@ export interface TaskStats {
   completed: number
   incomplete: number
   completion_percentage: number
+  by_priority?: Record<Priority, number>
 }
 
 /**
@@ -86,6 +107,8 @@ export interface TaskStats {
 export interface TaskCreatePayload {
   title: string
   description?: string
+  priority?: Priority
+  tag_ids?: number[]
 }
 
 /**
@@ -94,6 +117,25 @@ export interface TaskCreatePayload {
 export interface TaskUpdatePayload {
   title?: string
   description?: string
+  completed?: boolean
+  priority?: Priority
+  tag_ids?: number[]
+}
+
+/**
+ * Tag creation payload.
+ */
+export interface TagCreatePayload {
+  name: string
+  color?: string
+}
+
+/**
+ * Tag list response.
+ */
+export interface TagListResponse {
+  tags: Tag[]
+  total: number
 }
 
 /**

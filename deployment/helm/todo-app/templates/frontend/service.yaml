@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "todo-app.frontend.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.serviceType | default "ClusterIP" }}
   selector:
     {{- include "todo-app.frontend.selectorLabels" . | nindent 4 }}
   ports:

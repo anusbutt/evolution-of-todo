@@ -34,8 +34,12 @@ if config.config_file_name is not None:
 
 # Import all models here for autogenerate support
 # This ensures SQLModel metadata includes all tables
+# Import order matters - TaskTag must come before Task and Tag
 from app.models.user import User  # Phase 3: User Story 1
+from app.models.task_tag import TaskTag  # Phase 5: Task-Tag junction (must be first)
 from app.models.task import Task  # Phase 4: User Story 2
+from app.models.tag import Tag  # Phase 5: Tags
+from app.models.audit_log import AuditLog  # Phase 5: Audit logging
 
 # Set target_metadata to SQLModel metadata for autogenerate
 target_metadata = SQLModel.metadata
