@@ -22,11 +22,8 @@ COPY . .
 # Set the API URL for build time (empty = use relative URLs through ingress)
 ENV NEXT_PUBLIC_API_URL=""
 
-# Disable Turbopack (use webpack) - Turbopack has issues with native modules
-ENV TURBOPACK=0
-
-# Build the application
-RUN npm run build
+# Build the application (disable Turbopack - use webpack for native module compatibility)
+RUN npx next build --no-turbopack
 
 # Production stage
 FROM node:22-slim AS runner
