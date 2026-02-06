@@ -1,6 +1,7 @@
 // [Task]: T051 [US1] | [Spec]: specs/002-phase-02-web-app/spec.md
+// [Task]: Phase 5 - Glassmorphism redesign
 /**
- * Login form component with validation using React Hook Form and Zod.
+ * Login form component with glass styling.
  * Authenticates user with email and password.
  */
 'use client'
@@ -10,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { AlertCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { apiRequest, ApiError } from '@/lib/api-client'
@@ -40,13 +42,11 @@ export function LoginForm() {
     setApiError(null)
 
     try {
-      // POST /api/auth/login
       await apiRequest('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
       })
 
-      // Redirect to tasks page on success
       router.push('/tasks')
     } catch (error) {
       if (error instanceof ApiError) {
@@ -60,7 +60,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <Input
         label="Email"
         type="email"
@@ -68,6 +68,7 @@ export function LoginForm() {
         error={errors.email?.message}
         {...register('email')}
         fullWidth
+        autoComplete="email"
       />
 
       <Input
@@ -77,11 +78,13 @@ export function LoginForm() {
         error={errors.password?.message}
         {...register('password')}
         fullWidth
+        autoComplete="current-password"
       />
 
       {apiError && (
-        <div className="p-4 bg-red-100 border border-red-500 rounded-md">
-          <p className="text-sm text-red-600 dark:text-red-400">{apiError}</p>
+        <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-400">{apiError}</p>
         </div>
       )}
 

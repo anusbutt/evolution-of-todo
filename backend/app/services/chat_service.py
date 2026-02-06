@@ -21,28 +21,36 @@ from app.models.message import Message
 
 logger = logging.getLogger(__name__)
 
-# T032, T048: Agent system prompt for task management
+# T032, T048, T118: Agent system prompt for task management with priority/tags support
 SYSTEM_PROMPT = """You are a helpful task management assistant. You help users manage their tasks through natural language.
 
 You have access to the following tools:
-- add_task: Add a new task to the user's task list
-- list_tasks: Show all tasks for the user
+- add_task: Add a new task to the user's task list (with optional priority P1/P2/P3)
+- list_tasks: Show all tasks for the user (optionally filtered by priority)
 
 When the user wants to:
-- Create/add a task: Use add_task with their task title and optional description
+- Create/add a task: Use add_task with their task title and optional priority (P1=High, P2=Medium, P3=Low)
 - View/list/show tasks: Use list_tasks to show their tasks
 - Complete/mark done: Use complete_task with the task number from the list
 - Delete/remove: Use delete_task with the task number from the list
-- Update/change/rename: Use update_task with the task number and new title
+- Update/change/rename: Use update_task with the task number and new title/priority
+- Filter by priority: Show only P1 (high priority) tasks
+
+Priority Levels:
+- P1 (High): Urgent/critical tasks, shown with 🔴 red indicator
+- P2 (Medium): Normal priority tasks, shown with 🟡 yellow indicator (default)
+- P3 (Low): Low priority tasks, shown with 🟢 green indicator
 
 Guidelines:
 - Be concise and friendly
-- Confirm actions clearly (e.g., "Done! I've added 'buy groceries' to your tasks.")
-- When listing tasks, format them nicely with numbers and status indicators
+- Confirm actions clearly (e.g., "Done! I've added 'buy groceries' as a P1 high priority task.")
+- When listing tasks, format them nicely with numbers, priority indicators, and status
 - Use checkmarks for completed tasks and circles for pending tasks
+- Show priority as colored emoji: 🔴 P1, 🟡 P2, 🟢 P3
 - If the user's intent is unclear, ask for clarification
 - Extract task titles naturally from conversational requests
-- For "Add buy groceries", the task title should be "buy groceries"
+- Detect priority from phrases like "urgent", "important", "critical" (→ P1), "low priority" (→ P3)
+- For "Add buy groceries urgently", set priority to P1
 - Always respond in a helpful, conversational tone
 
 Remember: The user_id will be provided automatically - you don't need to ask for it."""
@@ -229,15 +237,20 @@ class ChatService:
                     if not tasks:
                         return ("You don't have any tasks yet. Would you like to add one?", False)
 
-                    # Format task list nicely
+                    # Priority emoji mapping
+                    priority_emoji = {"P1": "🔴", "P2": "🟡", "P3": "🟢"}
+
+                    # Format task list nicely with priority
                     task_lines = []
                     for i, task in enumerate(tasks, 1):
                         status = "✓" if task.get("completed") else "○"
                         title = task.get("title", "Untitled")
-                        task_lines.append(f"{i}. {status} {title}")
+                        priority = task.get("priority", "P2")
+                        emoji = priority_emoji.get(priority, "🟡")
+                        task_lines.append(f"{i}. {status} {emoji} {title}")
 
                     task_list = "\n".join(task_lines)
-                    return (f"Here are your tasks:\n\n{task_list}", False)
+                    return (f"Here are your tasks:\n\n{task_list}\n\n(🔴 High • 🟡 Medium • 🟢 Low)", False)
                 else:
                     return (f"Sorry, I couldn't retrieve your tasks: {response.get('error', 'Unknown error')}", False)
             except Exception as e:
@@ -252,20 +265,24 @@ class ChatService:
         )
 
         if is_add_request:
-            # Extract task title from message
+            # Extract task title and priority from message
             title = self._extract_task_title(message)
+            priority = self._extract_priority(message)
             if title:
                 # Call MCP server to add task
                 try:
                     async with httpx.AsyncClient() as client:
                         # For now, directly call our add_task logic via HTTP
                         # In full implementation, this would go through MCP protocol
-                        response = await self._add_task_via_api(user_id, title)
+                        response = await self._add_task_via_api(user_id, title, priority)
                         if response.get("success"):
                             task_updated = True
                             task = response.get("task", {})
+                            task_priority = task.get("priority", "P2")
+                            priority_labels = {"P1": "high priority 🔴", "P2": "medium priority 🟡", "P3": "low priority 🟢"}
+                            priority_label = priority_labels.get(task_priority, "medium priority")
                             return (
-                                f"Done! I've added '{task.get('title', title)}' to your task list.",
+                                f"Done! I've added '{task.get('title', title)}' as a {priority_label} task.",
                                 True,
                             )
                         else:
@@ -432,6 +449,25 @@ class ChatService:
                 logger.error(f"Error calling Gemini API: {e}")
                 return "I'm having trouble processing that request. Please try again.", False
 
+    def _extract_priority(self, message: str) -> str:
+        """Extract priority level from natural language message."""
+        message_lower = message.lower()
+
+        # High priority indicators (P1)
+        high_keywords = ["urgent", "critical", "important", "asap", "immediately", "priority 1", "p1", "high priority"]
+        for keyword in high_keywords:
+            if keyword in message_lower:
+                return "P1"
+
+        # Low priority indicators (P3)
+        low_keywords = ["low priority", "not urgent", "whenever", "later", "eventually", "priority 3", "p3"]
+        for keyword in low_keywords:
+            if keyword in message_lower:
+                return "P3"
+
+        # Default to medium priority (P2)
+        return "P2"
+
     def _extract_task_title(self, message: str) -> Optional[str]:
         """Extract task title from natural language message."""
         message_lower = message.lower().strip()
@@ -457,8 +493,8 @@ class ChatService:
         for prefix in prefixes:
             if message_lower.startswith(prefix):
                 title = message[len(prefix):].strip()
-                # Remove common suffixes
-                for suffix in [" to my list", " to my tasks", " to the list"]:
+                # Remove common suffixes including priority phrases
+                for suffix in [" to my list", " to my tasks", " to the list", " urgently", " asap", " immediately", " high priority", " low priority"]:
                     if title.lower().endswith(suffix):
                         title = title[:-len(suffix)]
                 return title.strip() if title.strip() else None
@@ -467,15 +503,22 @@ class ChatService:
         # (for simple commands like "buy groceries")
         return message.strip() if len(message.strip()) > 2 else None
 
-    async def _add_task_via_api(self, user_id: int, title: str) -> dict:
+    async def _add_task_via_api(self, user_id: int, title: str, priority: str = "P2") -> dict:
         """Add task by directly calling the backend task creation logic."""
-        from app.models.task import Task
+        from app.models.task import Task, Priority
 
         try:
+            # Validate priority
+            try:
+                priority_enum = Priority(priority.upper())
+            except ValueError:
+                priority_enum = Priority.P2  # Default to medium
+
             task = Task(
                 user_id=user_id,
                 title=title,
                 completed=False,
+                priority=priority_enum,
             )
             self.session.add(task)
             await self.session.commit()
@@ -488,6 +531,7 @@ class ChatService:
                     "title": task.title,
                     "description": task.description,
                     "completed": task.completed,
+                    "priority": task.priority.value if hasattr(task.priority, 'value') else task.priority,
                     "created_at": task.created_at.isoformat() + "Z" if task.created_at else None,
                 }
             }
@@ -518,6 +562,7 @@ class ChatService:
                         "title": task.title,
                         "description": task.description,
                         "completed": task.completed,
+                        "priority": task.priority.value if hasattr(task.priority, 'value') else task.priority,
                         "created_at": task.created_at.isoformat() + "Z" if task.created_at else None,
                     }
                     for task in tasks

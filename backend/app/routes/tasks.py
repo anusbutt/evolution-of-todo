@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.database import get_async_session
+from app.events.publisher import EventPublisher
+from app.schemas.event import EventType
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse
 from app.services.task_service import (
     create_task,
@@ -54,6 +56,14 @@ async def create_task_endpoint(
 
     # Create task in database
     task = await create_task(session, task_data, user_id)
+
+    # [T044] Publish task.created event (fire-and-forget)
+    await EventPublisher.publish_task_event(
+        event_type=EventType.CREATED,
+        user_id=user_id,
+        task_id=task.id,
+        task_data=EventPublisher.build_task_data(task),
+    )
 
     return TaskResponse.model_validate(task)
 
@@ -199,6 +209,14 @@ async def update_task_status_endpoint(
             detail="Task not found"
         )
 
+    # [T047] Publish task.completed event (fire-and-forget)
+    await EventPublisher.publish_task_event(
+        event_type=EventType.COMPLETED,
+        user_id=user_id,
+        task_id=task_id,
+        task_data=EventPublisher.build_task_data(task),
+    )
+
     return TaskResponse.model_validate(task)
 
 
@@ -247,6 +265,14 @@ async def update_task_endpoint(
             detail="Task not found"
         )
 
+    # [T045] Publish task.updated event (fire-and-forget)
+    await EventPublisher.publish_task_event(
+        event_type=EventType.UPDATED,
+        user_id=user_id,
+        task_id=task_id,
+        task_data=EventPublisher.build_task_data(task),
+    )
+
     return TaskResponse.model_validate(task)
 
 
@@ -287,6 +313,13 @@ async def delete_task_endpoint(
             status_code=404,
             detail="Task not found"
         )
+
+    # [T046] Publish task.deleted event (fire-and-forget, no task_data since deleted)
+    await EventPublisher.publish_task_event(
+        event_type=EventType.DELETED,
+        user_id=user_id,
+        task_id=task_id,
+    )
 
     return None  # 204 No Content
 

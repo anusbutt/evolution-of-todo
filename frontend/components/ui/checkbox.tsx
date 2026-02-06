@@ -1,6 +1,7 @@
 // [Task]: T035 [P] | [Spec]: specs/002-phase-02-web-app/spec.md
+// [Task]: Phase 5 - Glassmorphism redesign
 /**
- * Reusable Checkbox component with accessibility labels.
+ * Reusable Checkbox component with indigo accent and smooth animations.
  * Controlled component for task completion status.
  */
 import { InputHTMLAttributes, forwardRef } from 'react'
@@ -13,10 +14,13 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, className, id, ...props }, ref) => {
     const checkboxStyles = clsx(
-      'h-6 w-6 sm:h-5 sm:w-5 rounded border-gray-300 dark:border-gray-600',
-      'text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-offset-2 accent-blue-600',
-      'cursor-pointer transition-colors duration-200',
-      'dark:bg-gray-800',
+      'h-5 w-5 rounded-md',
+      'border-2 border-gray-400 dark:border-gray-500',
+      'text-indigo-500 focus:ring-indigo-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent',
+      'accent-indigo-500',
+      'cursor-pointer transition-all duration-200',
+      'bg-transparent checked:bg-indigo-500 checked:border-indigo-500',
+      'hover:border-indigo-400',
       className
     )
 
@@ -34,7 +38,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+            className="text-sm font-medium text-gray-300 dark:text-gray-300 cursor-pointer select-none hover:text-white transition-colors"
           >
             {label}
           </label>

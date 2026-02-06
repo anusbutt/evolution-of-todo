@@ -1,9 +1,11 @@
 <!--
 Sync Impact Report:
-- Version change: 1.1.0 (Phase III tech stack amendment)
-- Amended sections: Phase III Technology Stack, Deployment Standards Phase III
-- Changes: OpenAI ChatKit → Custom Chat UI, OpenAI API → Gemini API (OpenAI-compatible), Added MCP transport (HTTP/SSE), Added MCP Server as separate service
+- Version change: 1.6.0 (Phase V cloud platform amendment)
+- Amended sections: Phase V Technology Stack, Deployment Standards Phase V
+- Changes: Oracle Cloud Infrastructure (OKE) → DigitalOcean Kubernetes Service (DOKS)
+- Reason: OCI Free Tier ARM64 capacity exhausted in Mumbai; free tier limited to 1 region; DigitalOcean $200 credit provides reliable provisioning in Frankfurt (fra1)
 - Templates requiring updates: ✅ All templates compatible with this constitution
+- Dependent artifacts updated: spec.md, plan.md, tasks.md
 - Follow-up TODOs: None
 -->
 
@@ -17,7 +19,7 @@ This constitution defines the immutable principles, standards, and constraints t
 - **Phase II**: Full-Stack Web (Next.js + FastAPI + Neon DB)
 - **Phase III**: AI Chatbot (OpenAI Agents SDK + Gemini + MCP)
 - **Phase IV**: Local Kubernetes (Minikube + Helm + kubectl-ai)
-- **Phase V**: Cloud Native (AKS/GKE/OKE + Kafka + Dapr)
+- **Phase V**: Cloud Native (DOKS + Kafka + Dapr)
 
 ---
 
@@ -133,7 +135,9 @@ Each phase builds on the previous - NO SKIPPING PHASES:
 - **Deployment Target**: Local cluster with resource limits
 
 #### Phase V: Cloud Native
-- **Cloud Platform**: Azure AKS, Google GKE, or Oracle OKE
+- **Cloud Platform**: DigitalOcean Kubernetes Service (DOKS) - $200 free credit (60 days)
+- **Container Registry**: DigitalOcean Container Registry (DOCR)
+- **Region**: Frankfurt (fra1)
 - **Event Streaming**: Kafka (Redpanda Cloud or self-hosted via Strimzi operator)
 - **Distributed Runtime**: Dapr (Pub/Sub, State Management, Jobs API, Secrets, Service Invocation)
 - **Kafka Topics**: `task-events`, `reminders`, `task-updates`
@@ -359,13 +363,17 @@ Each phase builds on the previous - NO SKIPPING PHASES:
 - **Image Registry**: Local Docker registry or Docker Hub
 
 ### Phase V: Cloud Kubernetes
-- **Platform**: Azure AKS, Google GKE, or Oracle OKE
-- **Kafka**: Redpanda Cloud (free tier) or self-hosted via Strimzi operator
+- **Platform**: DigitalOcean Kubernetes Service (DOKS) - $200 free credit (60 days)
+- **Container Registry**: DigitalOcean Container Registry (DOCR)
+- **Region**: Frankfurt (fra1)
+- **Node Size**: Basic Droplets (s-2vcpu-2gb, $12/month each)
+- **Architecture**: amd64 (standard x86_64)
+- **Kafka**: Redpanda Cloud (free tier)
 - **Dapr**: Full building blocks enabled (Pub/Sub, State, Jobs API, Secrets, Service Invocation)
 - **CI/CD Pipeline**: GitHub Actions
   - Trigger: Push to main branch
-  - Steps: Run tests → Build Docker images → Push to registry → Deploy via Helm → Smoke tests
-- **Monitoring**: Cloud provider monitoring (Azure Monitor, Google Cloud Monitoring, Oracle Cloud Observability)
+  - Steps: Run tests → Build Docker images → Push to DOCR → Deploy via kubectl/Helm → Smoke tests
+- **Monitoring**: DigitalOcean Dashboard, kubectl logs
 
 ---
 
@@ -563,8 +571,8 @@ If conflicts arise between levels, the higher level wins.
 
 ---
 
-**Version**: 1.1.0
+**Version**: 1.6.0
 **Ratified**: 2026-01-09
-**Last Amended**: 2026-01-15
+**Last Amended**: 2026-02-05
 **Architect**: [Your Name]
 **Engineer**: Claude Code (Opus 4.5)
