@@ -121,7 +121,11 @@ jobs:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
       - name: Log in to DigitalOcean Container Registry
-        run: doctl registry login --expiry-seconds 1200
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          password: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
       - name: Generate image metadata
         id: meta
@@ -220,16 +224,16 @@ jobs:
             --namespace ${{ env.NAMESPACE }} \
             --create-namespace \
             -f ./deployment/helm/todo-app/values-prod.yaml \
-            --set frontend.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set backend.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set mcpServer.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set images.frontend.tag=${{ needs.build.outputs.image_tag }} \
+            --set images.backend.tag=${{ needs.build.outputs.image_tag }} \
+            --set images.mcpServer.tag=${{ needs.build.outputs.image_tag }} \
             --set auditService.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set backend.env.DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-            --set backend.env.JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            --set backend.env.GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            --set redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
-            --set redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
-            --set redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
+            --set secrets.databaseUrl="${{ secrets.DATABASE_URL }}" \
+            --set secrets.jwtSecret="${{ secrets.JWT_SECRET }}" \
+            --set secrets.geminiApiKey="${{ secrets.GEMINI_API_KEY }}" \
+            --set dapr.redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
+            --set dapr.redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
+            --set dapr.redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
             --wait \
             --timeout 10m
 
