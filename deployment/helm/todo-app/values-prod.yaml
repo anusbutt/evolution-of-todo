@@ -8,21 +8,21 @@ namespace: todo-app
 # Image configuration for DigitalOcean Container Registry (DOCR)
 images:
   frontend:
-    repository: registry.digitalocean.com/todo-app-registry/frontend
+    repository: registry.digitalocean.com/todo-app/frontend
     tag: latest
     pullPolicy: Always
   backend:
-    repository: registry.digitalocean.com/todo-app-registry/backend
+    repository: registry.digitalocean.com/todo-app/backend
     tag: latest
     pullPolicy: Always
   mcpServer:
-    repository: registry.digitalocean.com/todo-app-registry/mcp-server
+    repository: registry.digitalocean.com/todo-app/mcp-server
     tag: latest
     pullPolicy: Always
 
 # Image pull secrets (DOCR integrated via doctl registry kubernetes-manifest)
 imagePullSecrets:
-  - name: registry-todo-app-registry
+  - name: registry-todo-app
 
 # Replica configuration (optimized for 2-node cluster)
 replicas:
@@ -140,10 +140,11 @@ nodeSelector:
 tolerations: []
 
 # Audit Service (Phase 5 - Cloud-Native Microservice)
+# Disabled temporarily to reduce cluster load
 auditService:
-  enabled: true
+  enabled: false
   image:
-    repository: registry.digitalocean.com/todo-app-registry/audit-service
+    repository: registry.digitalocean.com/todo-app/audit-service
     tag: latest
     pullPolicy: Always
   port: 5002
@@ -157,8 +158,9 @@ auditService:
       memory: 256Mi
 
 # Dapr configuration (Phase 4 - Event-Driven Architecture)
+# Disabled temporarily to reduce cluster load
 dapr:
-  enabled: true
+  enabled: false
   redpanda:
     brokers: ""
     username: ""

@@ -30,7 +30,7 @@ on:
 
 env:
   REGISTRY: registry.digitalocean.com
-  REGISTRY_NAME: todo-app-registry
+  REGISTRY_NAME: todo-app
   CLUSTER_NAME: todo-app-cluster
   NAMESPACE: todo-app
 
@@ -201,6 +201,22 @@ jobs:
         run: |
           helm dependency update || true
 
+      - name: Clean up orphaned secrets
+        run: |
+          # Delete secrets not managed by Helm to allow Helm to recreate them
+          kubectl delete secret redpanda-secrets -n ${{ env.NAMESPACE }} --ignore-not-found
+          kubectl delete secret todo-secrets -n ${{ env.NAMESPACE }} --ignore-not-found
+
+      - name: Reset stuck Helm release
+        run: |
+          # Check if release is stuck in pending state and reset it
+          STATUS=$(helm status todo-app -n ${{ env.NAMESPACE }} -o json 2>/dev/null | jq -r '.info.status' || echo "not-found")
+          echo "Current release status: $STATUS"
+          if [ "$STATUS" = "pending-install" ] || [ "$STATUS" = "pending-upgrade" ] || [ "$STATUS" = "pending-rollback" ]; then
+            echo "Release is stuck, uninstalling..."
+            helm uninstall todo-app -n ${{ env.NAMESPACE }} --wait || true
+          fi
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install todo-app ./deployment/helm/todo-app \
@@ -210,15 +226,10 @@ jobs:
             --set images.frontend.tag=${{ needs.build.outputs.image_tag }} \
             --set images.backend.tag=${{ needs.build.outputs.image_tag }} \
             --set images.mcpServer.tag=${{ needs.build.outputs.image_tag }} \
-            --set auditService.image.tag=${{ needs.build.outputs.image_tag }} \
             --set secrets.databaseUrl="${{ secrets.DATABASE_URL }}" \
             --set secrets.jwtSecret="${{ secrets.JWT_SECRET }}" \
             --set secrets.geminiApiKey="${{ secrets.GEMINI_API_KEY }}" \
-            --set dapr.redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
-            --set dapr.redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
-            --set dapr.redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
-            --wait \
-            --timeout 10m
+            --timeout 5m
 
       - name: Verify deployment
         run: |
