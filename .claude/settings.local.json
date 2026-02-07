@@ -144,7 +144,11 @@
       "Bash(kubectl run:*)",
       "Bash(python3:*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMiIsImV4cCI6MTc3MDkxMTUwMn0.heVQq2vmRUvPhsI2QvkCU7XJ_9BFuoLFK-DeTe-wr3g\")",
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMiIsImV4cCI6MTc3MDkxMjkyN30.gyDX85u7GyP7Aj7JuAZSYXbg9XDBLCMMV0j1RY-w-qE\")"
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMiIsImV4cCI6MTc3MDkxMjkyN30.gyDX85u7GyP7Aj7JuAZSYXbg9XDBLCMMV0j1RY-w-qE\")",
+      "Bash(git check-ignore:*)",
+      "Bash(grep:*)",
+      "Bash(gh run:*)",
+      "mcp__github__list_commits"
     ]
   }
 }

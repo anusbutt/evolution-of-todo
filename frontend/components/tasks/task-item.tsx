@@ -75,7 +75,7 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
             <PriorityBadge priority={task.priority} size="sm" />
             <h3
               className={clsx(
-                'text-lg font-medium text-white',
+                'text-lg font-medium text-gray-900 dark:text-white',
                 task.completed && 'line-through text-gray-400'
               )}
             >
@@ -95,7 +95,7 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
           {/* Description */}
           {task.description && (
             <div className="mt-2">
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">
+              <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
                 {displayDescription}
               </p>
               {shouldTruncate && (

@@ -65,17 +65,17 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center space-y-8">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-            <Sparkles className="w-4 h-4 text-indigo-400" />
-            <span className="text-sm text-indigo-300">Now with AI Assistant</span>
+            <Sparkles className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+            <span className="text-sm text-indigo-600 dark:text-indigo-300">Now with AI Assistant</span>
           </div>
 
           {/* Headline */}
           <div className="space-y-4">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-tight">
               Manage tasks with{' '}
               <span className="gradient-text">clarity</span>
             </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               The simple, powerful way to organize your tasks and boost your productivity.
               Now powered by AI for natural language task management.
             </p>
@@ -108,10 +108,10 @@ export default function HomePage() {
               <div className={`w-12 h-12 rounded-xl ${feature.bgColor} flex items-center justify-center mb-4`}>
                 <feature.icon className={`w-6 h-6 ${feature.color}`} />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 {feature.title}
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {feature.description}
               </p>
             </div>

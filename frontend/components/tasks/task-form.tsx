@@ -129,7 +129,7 @@ export function TaskForm({
       <div className="space-y-1.5">
         <label
           htmlFor="description"
-          className="block text-sm font-medium text-gray-300"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           Description (optional)
         </label>
@@ -152,7 +152,7 @@ export function TaskForm({
 
       {/* Priority */}
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-300">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Priority
         </label>
         <Controller
@@ -171,7 +171,7 @@ export function TaskForm({
       {/* Tags */}
       {availableTags.length > 0 && (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Tags (optional)
           </label>
           <div className="flex flex-wrap gap-2">
@@ -187,7 +187,7 @@ export function TaskForm({
                     'border transition-all duration-200',
                     isSelected
                       ? 'bg-indigo-500/20 border-indigo-500/50 text-white'
-                      : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                      : 'bg-white/5 border-white/10 text-gray-700 dark:text-gray-300 hover:bg-white/10'
                   )}
                 >
                   <span

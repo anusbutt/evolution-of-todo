@@ -175,7 +175,7 @@ export function TaskFilters({
                 'px-3 py-1.5 text-xs font-medium transition-colors',
                 filters.status === status
                   ? 'bg-indigo-500 text-white'
-                  : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                  : 'bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-white/10'
               )}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -190,7 +190,7 @@ export function TaskFilters({
             className={clsx(
               'flex items-center gap-2 px-3 py-1.5 rounded-lg',
               'bg-white/5 border border-white/10',
-              'text-sm text-gray-300 hover:bg-white/10 transition-colors'
+              'text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 transition-colors'
             )}
           >
             {filters.priority === 'all' ? (
@@ -216,7 +216,7 @@ export function TaskFilters({
                   )}
                 >
                   {option.value === 'all' ? (
-                    <span className="text-gray-300">{option.label}</span>
+                    <span className="text-gray-700 dark:text-gray-300">{option.label}</span>
                   ) : (
                     <PriorityBadge priority={option.value} size="sm" />
                   )}
@@ -234,7 +234,7 @@ export function TaskFilters({
               className={clsx(
                 'flex items-center gap-2 px-3 py-1.5 rounded-lg',
                 'bg-white/5 border border-white/10',
-                'text-sm text-gray-300 hover:bg-white/10 transition-colors'
+                'text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 transition-colors'
               )}
             >
               <span>Tags {filters.tags.length > 0 && `(${filters.tags.length})`}</span>
@@ -277,7 +277,7 @@ export function TaskFilters({
             className={clsx(
               'flex items-center gap-2 px-3 py-1.5 rounded-lg',
               'bg-white/5 border border-white/10',
-              'text-sm text-gray-300 hover:bg-white/10 transition-colors'
+              'text-sm text-gray-700 dark:text-gray-300 hover:bg-white/10 transition-colors'
             )}
           >
             {sort.direction === 'asc' ? (
@@ -303,7 +303,7 @@ export function TaskFilters({
                       : 'hover:bg-white/10'
                   )}
                 >
-                  <span className="text-gray-300">{option.label}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{option.label}</span>
                   {sort.field === option.field && (
                     sort.direction === 'asc' ? (
                       <SortAsc className="w-4 h-4 text-indigo-400" />
