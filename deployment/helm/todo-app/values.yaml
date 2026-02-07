@@ -132,7 +132,10 @@ auditService:
 dapr:
   enabled: false
   redpanda:
-    saslMechanism: "SHA-256"
+    brokers: ""
+    username: ""
+    password: ""
+    saslMechanism: "SCRAM-SHA-256"
 
 # Deployment strategy
 strategy:

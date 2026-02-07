@@ -223,7 +223,7 @@ export default function TasksPage() {
   }, [tasks, filters, sort])
 
   const hasActiveFilters =
-    filters.search ||
+    !!filters.search ||
     filters.priority !== 'all' ||
     filters.tags.length > 0 ||
     filters.status !== 'all'

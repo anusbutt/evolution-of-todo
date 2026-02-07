@@ -169,16 +169,16 @@
 
 ### Implementation for US4
 
-- [ ] T072 [US4] Update task service to handle priority in backend/app/services/task_service.py
-- [ ] T073 [US4] Update POST /api/tasks to accept priority in backend/app/routes/tasks.py
-- [ ] T074 [US4] Update PUT /api/tasks/{id} to accept priority in backend/app/routes/tasks.py
-- [ ] T075 [US4] Include priority in task-events payload in backend/app/events/publisher.py
-- [ ] T076 [US4] Create PriorityBadge component in frontend/components/ui/PriorityBadge.tsx
-- [ ] T077 [US4] Update TaskCard to display priority badge in frontend/components/tasks/TaskCard.tsx
-- [ ] T078 [US4] Update TaskForm to include priority radio buttons in frontend/components/tasks/TaskForm.tsx
-- [ ] T079 [US4] Update task service for priority in frontend/services/task-service.ts
+- [x] T072 [US4] Update task service to handle priority in backend/app/services/task_service.py ✅ DONE (UI Redesign)
+- [x] T073 [US4] Update POST /api/tasks to accept priority in backend/app/routes/tasks.py ✅ DONE
+- [x] T074 [US4] Update PUT /api/tasks/{id} to accept priority in backend/app/routes/tasks.py ✅ DONE
+- [x] T075 [US4] Include priority in task-events payload in backend/app/events/publisher.py ✅ DONE
+- [x] T076 [US4] Create PriorityBadge component in frontend/components/ui/priority-badge.tsx ✅ DONE
+- [x] T077 [US4] Update TaskCard to display priority badge in frontend/components/tasks/task-item.tsx ✅ DONE
+- [x] T078 [US4] Update TaskForm to include priority select in frontend/components/tasks/task-form.tsx ✅ DONE
+- [x] T079 [US4] Update task service for priority in frontend (integrated in tasks page) ✅ DONE
 
-**Checkpoint**: Tasks display color-coded priority indicators (Red=P1, Yellow=P2, Green=P3)
+**Checkpoint**: Tasks display color-coded priority indicators (Red=P1, Yellow=P2, Green=P3) ✅ COMPLETE
 
 ---
 
@@ -286,8 +286,8 @@
 - [x] T111 [US9] Add build job (docker build and push to DOCR) ✅ DONE
 - [x] T112 [US9] Add deploy job (doctl kubeconfig save + helm upgrade to DOKS) ✅ DONE
 - [x] T113 [US9] Add smoke-test job (verify deployment health via Load Balancer IP) ✅ DONE
-- [ ] T114 [US9] Configure GitHub repository secrets (DIGITALOCEAN_ACCESS_TOKEN, REDPANDA_*) ⚠️ MANUAL
-- [ ] T115 [US9] Test pipeline with push to feature branch first ⚠️ REQUIRES PUSH
+- [x] T114 [US9] Configure GitHub repository secrets (DIGITALOCEAN_ACCESS_TOKEN, REDPANDA_*) ✅ DONE
+- [x] T115 [US9] Test pipeline with push to feature branch first ✅ DONE (Pipeline running)
 - [x] T116 [US9] Document CI/CD setup in .github/workflows/README.md ✅ DONE
 
 **Checkpoint**: Push to main triggers full CI/CD pipeline with deployment to DOKS

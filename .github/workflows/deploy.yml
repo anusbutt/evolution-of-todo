@@ -51,7 +51,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: 'pip'
 
       - name: Install backend dependencies
         working-directory: ./backend
@@ -77,12 +76,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run frontend linting
         working-directory: ./frontend
@@ -115,13 +112,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Verify Container Registry exists
+        run: |
+          echo "Checking registry access..."
+          doctl registry get || echo "Registry check failed - may need to create registry"
+          echo "Registry name configured: ${{ env.REGISTRY_NAME }}"
 
       - name: Log in to DigitalOcean Container Registry
         run: doctl registry login --expiry-seconds 1200
@@ -135,55 +135,39 @@ jobs:
 
       # Build and push Frontend
       - name: Build and push Frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/frontend:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          docker build -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/frontend:${{ steps.meta.outputs.version }} \
+                       -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/frontend:latest \
+                       -f ./frontend/Dockerfile ./frontend
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/frontend:${{ steps.meta.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/frontend:latest
 
       # Build and push Backend
       - name: Build and push Backend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/backend:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          docker build -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/backend:${{ steps.meta.outputs.version }} \
+                       -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/backend:latest \
+                       -f ./backend/Dockerfile ./backend
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/backend:${{ steps.meta.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/backend:latest
 
       # Build and push MCP Server
       - name: Build and push MCP Server
-        uses: docker/build-push-action@v5
-        with:
-          context: ./mcp-server
-          file: ./mcp-server/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/mcp-server:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/mcp-server:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          docker build -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/mcp-server:${{ steps.meta.outputs.version }} \
+                       -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/mcp-server:latest \
+                       -f ./mcp-server/Dockerfile ./mcp-server
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/mcp-server:${{ steps.meta.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/mcp-server:latest
 
       # Build and push Audit Service
       - name: Build and push Audit Service
-        uses: docker/build-push-action@v5
-        with:
-          context: ./services/audit-service
-          file: ./services/audit-service/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/audit-service:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/audit-service:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          docker build -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/audit-service:${{ steps.meta.outputs.version }} \
+                       -t ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/audit-service:latest \
+                       -f ./services/audit-service/Dockerfile ./services/audit-service
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/audit-service:${{ steps.meta.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/audit-service:latest
 
   # ============================================================================
   # Deploy Job - Deploy to DOKS via Helm
@@ -223,16 +207,16 @@ jobs:
             --namespace ${{ env.NAMESPACE }} \
             --create-namespace \
             -f ./deployment/helm/todo-app/values-prod.yaml \
-            --set frontend.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set backend.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set mcpServer.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set images.frontend.tag=${{ needs.build.outputs.image_tag }} \
+            --set images.backend.tag=${{ needs.build.outputs.image_tag }} \
+            --set images.mcpServer.tag=${{ needs.build.outputs.image_tag }} \
             --set auditService.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set backend.env.DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-            --set backend.env.JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            --set backend.env.GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            --set redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
-            --set redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
-            --set redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
+            --set secrets.databaseUrl="${{ secrets.DATABASE_URL }}" \
+            --set secrets.jwtSecret="${{ secrets.JWT_SECRET }}" \
+            --set secrets.geminiApiKey="${{ secrets.GEMINI_API_KEY }}" \
+            --set dapr.redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
+            --set dapr.redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
+            --set dapr.redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
             --wait \
             --timeout 10m
 

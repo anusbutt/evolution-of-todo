@@ -1,8 +1,9 @@
 # [Task]: T026a | [Spec]: specs/005-phase-05-cloud-native/spec.md
 # Dockerfile for Next.js frontend (DigitalOcean DOKS - amd64)
+# Using node:22-slim instead of alpine due to lightningcss native module issues
 
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -22,7 +23,7 @@ ENV NEXT_PUBLIC_API_URL=""
 RUN npm run build
 
 # Production stage
-FROM node:22-alpine AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app
 
@@ -30,8 +31,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 nextjs
 
 # Copy built application
 COPY --from=builder /app/public ./public
@@ -46,9 +47,9 @@ USER nextjs
 # Expose port
 EXPOSE 3000
 
-# Health check
+# Health check (use curl instead of wget on debian-based images)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+    CMD node -e "require('http').get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
 
 # Run the application
 CMD ["node", "server.js"]
