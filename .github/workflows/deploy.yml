@@ -226,9 +226,13 @@ jobs:
             --set images.frontend.tag=${{ needs.build.outputs.image_tag }} \
             --set images.backend.tag=${{ needs.build.outputs.image_tag }} \
             --set images.mcpServer.tag=${{ needs.build.outputs.image_tag }} \
+            --set auditService.image.tag=${{ needs.build.outputs.image_tag }} \
             --set secrets.databaseUrl="${{ secrets.DATABASE_URL }}" \
             --set secrets.jwtSecret="${{ secrets.JWT_SECRET }}" \
             --set secrets.geminiApiKey="${{ secrets.GEMINI_API_KEY }}" \
+            --set dapr.redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
+            --set dapr.redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
+            --set dapr.redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
             --timeout 5m
 
       - name: Verify deployment
