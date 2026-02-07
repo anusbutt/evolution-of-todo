@@ -209,12 +209,13 @@ jobs:
 
       - name: Reset stuck Helm release
         run: |
-          # Check if release is stuck in pending state and reset it
+          # Check release status and handle stuck/failed states
           STATUS=$(helm status todo-app -n ${{ env.NAMESPACE }} -o json 2>/dev/null | jq -r '.info.status' || echo "not-found")
           echo "Current release status: $STATUS"
-          if [ "$STATUS" = "pending-install" ] || [ "$STATUS" = "pending-upgrade" ] || [ "$STATUS" = "pending-rollback" ]; then
-            echo "Release is stuck, uninstalling..."
+          if [ "$STATUS" = "pending-install" ] || [ "$STATUS" = "pending-upgrade" ] || [ "$STATUS" = "pending-rollback" ] || [ "$STATUS" = "failed" ]; then
+            echo "Release is stuck or failed, uninstalling..."
             helm uninstall todo-app -n ${{ env.NAMESPACE }} --wait || true
+            sleep 5
           fi
 
       - name: Deploy with Helm
@@ -222,6 +223,7 @@ jobs:
           helm upgrade --install todo-app ./deployment/helm/todo-app \
             --namespace ${{ env.NAMESPACE }} \
             --create-namespace \
+            --force \
             -f ./deployment/helm/todo-app/values-prod.yaml \
             --set images.frontend.tag=${{ needs.build.outputs.image_tag }} \
             --set images.backend.tag=${{ needs.build.outputs.image_tag }} \
