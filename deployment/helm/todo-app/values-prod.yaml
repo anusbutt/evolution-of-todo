@@ -140,8 +140,9 @@ nodeSelector:
 tolerations: []
 
 # Audit Service (Phase 5 - Cloud-Native Microservice)
+# Disabled temporarily to reduce cluster load
 auditService:
-  enabled: true
+  enabled: false
   image:
     repository: registry.digitalocean.com/todo-app/audit-service
     tag: latest
@@ -157,8 +158,9 @@ auditService:
       memory: 256Mi
 
 # Dapr configuration (Phase 4 - Event-Driven Architecture)
+# Disabled temporarily to reduce cluster load
 dapr:
-  enabled: true
+  enabled: false
   redpanda:
     brokers: ""
     username: ""
