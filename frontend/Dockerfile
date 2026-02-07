@@ -14,7 +14,7 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps --include=optional
 
 # Explicitly install lightningcss Linux binaries
-RUN npm install lightningcss-linux-x64-gnu --save-optional || true
+RUN npm install --legacy-peer-deps lightningcss-linux-x64-gnu || true
 
 # Copy source code
 COPY . .
@@ -22,8 +22,8 @@ COPY . .
 # Set the API URL for build time (empty = use relative URLs through ingress)
 ENV NEXT_PUBLIC_API_URL=""
 
-# Build the application (disable Turbopack - use webpack for native module compatibility)
-RUN npx next build --no-turbopack
+# Build the application
+RUN npm run build
 
 # Production stage
 FROM node:22-slim AS runner
