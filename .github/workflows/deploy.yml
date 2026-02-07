@@ -201,6 +201,12 @@ jobs:
         run: |
           helm dependency update || true
 
+      - name: Clean up orphaned secrets
+        run: |
+          # Delete secrets not managed by Helm to allow Helm to recreate them
+          kubectl delete secret redpanda-secrets -n ${{ env.NAMESPACE }} --ignore-not-found
+          kubectl delete secret todo-secrets -n ${{ env.NAMESPACE }} --ignore-not-found
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install todo-app ./deployment/helm/todo-app \
