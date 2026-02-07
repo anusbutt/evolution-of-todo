@@ -209,22 +209,28 @@ jobs:
 
       - name: Deploy with Helm
         run: |
-          helm upgrade --install todo-app ./deployment/helm/todo-app \
-            --namespace ${{ env.NAMESPACE }} \
-            --create-namespace \
-            -f ./deployment/helm/todo-app/values-prod.yaml \
-            --set images.frontend.tag=${{ needs.build.outputs.image_tag }} \
-            --set images.backend.tag=${{ needs.build.outputs.image_tag }} \
-            --set images.mcpServer.tag=${{ needs.build.outputs.image_tag }} \
-            --set auditService.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set secrets.databaseUrl="${{ secrets.DATABASE_URL }}" \
-            --set secrets.jwtSecret="${{ secrets.JWT_SECRET }}" \
-            --set secrets.geminiApiKey="${{ secrets.GEMINI_API_KEY }}" \
-            --set dapr.redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
-            --set dapr.redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
-            --set dapr.redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
-            --wait \
-            --timeout 10m
+          # Retry logic for rate limiting
+          for i in 1 2 3; do
+            echo "Attempt $i of 3..."
+            helm upgrade --install todo-app ./deployment/helm/todo-app \
+              --namespace ${{ env.NAMESPACE }} \
+              --create-namespace \
+              -f ./deployment/helm/todo-app/values-prod.yaml \
+              --set images.frontend.tag=${{ needs.build.outputs.image_tag }} \
+              --set images.backend.tag=${{ needs.build.outputs.image_tag }} \
+              --set images.mcpServer.tag=${{ needs.build.outputs.image_tag }} \
+              --set auditService.image.tag=${{ needs.build.outputs.image_tag }} \
+              --set secrets.databaseUrl="${{ secrets.DATABASE_URL }}" \
+              --set secrets.jwtSecret="${{ secrets.JWT_SECRET }}" \
+              --set secrets.geminiApiKey="${{ secrets.GEMINI_API_KEY }}" \
+              --set dapr.redpanda.brokers="${{ secrets.REDPANDA_BROKERS }}" \
+              --set dapr.redpanda.username="${{ secrets.REDPANDA_USERNAME }}" \
+              --set dapr.redpanda.password="${{ secrets.REDPANDA_PASSWORD }}" \
+              --wait \
+              --timeout 15m \
+              --atomic \
+            && break || sleep 30
+          done
 
       - name: Verify deployment
         run: |
