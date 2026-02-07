@@ -30,7 +30,7 @@ on:
 
 env:
   REGISTRY: registry.digitalocean.com
-  REGISTRY_NAME: todo-app-registry
+  REGISTRY_NAME: todo-app
   CLUSTER_NAME: todo-app-cluster
   NAMESPACE: todo-app
 
