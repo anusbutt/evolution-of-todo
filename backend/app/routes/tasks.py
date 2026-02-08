@@ -62,7 +62,7 @@ async def create_task_endpoint(
         event_type=EventType.CREATED,
         user_id=user_id,
         task_id=task.id,
-        task_data=EventPublisher.build_task_data(task),
+        task=task,
     )
 
     return TaskResponse.model_validate(task)
@@ -214,7 +214,7 @@ async def update_task_status_endpoint(
         event_type=EventType.COMPLETED,
         user_id=user_id,
         task_id=task_id,
-        task_data=EventPublisher.build_task_data(task),
+        task=task,
     )
 
     return TaskResponse.model_validate(task)
@@ -270,7 +270,7 @@ async def update_task_endpoint(
         event_type=EventType.UPDATED,
         user_id=user_id,
         task_id=task_id,
-        task_data=EventPublisher.build_task_data(task),
+        task=task,
     )
 
     return TaskResponse.model_validate(task)
