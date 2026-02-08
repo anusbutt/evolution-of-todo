@@ -150,7 +150,8 @@
       "Bash(gh run:*)",
       "mcp__github__list_commits",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(kubectl set image:*)"
     ]
   }
 }
