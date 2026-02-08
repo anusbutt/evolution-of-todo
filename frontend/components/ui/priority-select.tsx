@@ -71,7 +71,7 @@ export function PrioritySelect({
         className={clsx(
           'w-full flex items-center justify-between gap-2',
           'px-3 py-2 rounded-xl',
-          'glass-input text-white',
+          'glass-input text-gray-900 dark:text-white',
           'transition-all duration-200',
           disabled && 'opacity-50 cursor-not-allowed',
           isOpen && 'ring-2 ring-indigo-500/50'
@@ -104,7 +104,7 @@ export function PrioritySelect({
                 'text-left transition-colors',
                 value === option.value
                   ? 'bg-indigo-500/20'
-                  : 'hover:bg-white/10'
+                  : 'hover:bg-gray-100 dark:hover:bg-white/10'
               )}
             >
               <PriorityBadge priority={option.value} size="sm" />

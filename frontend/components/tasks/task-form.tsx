@@ -129,7 +129,7 @@ export function TaskForm({
       <div className="space-y-1.5">
         <label
           htmlFor="description"
-          className="block text-sm font-medium text-gray-300"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           Description (optional)
         </label>
@@ -138,7 +138,7 @@ export function TaskForm({
           placeholder="Enter task description"
           className={clsx(
             'w-full px-4 py-2.5 rounded-xl resize-vertical min-h-[100px]',
-            'glass-input text-white placeholder:text-gray-400',
+            'glass-input text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400',
             'focus:outline-none'
           )}
           {...register('description')}
@@ -152,7 +152,7 @@ export function TaskForm({
 
       {/* Priority */}
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-300">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Priority
         </label>
         <Controller
@@ -171,7 +171,7 @@ export function TaskForm({
       {/* Tags */}
       {availableTags.length > 0 && (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Tags (optional)
           </label>
           <div className="flex flex-wrap gap-2">
@@ -186,8 +186,8 @@ export function TaskForm({
                     'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm',
                     'border transition-all duration-200',
                     isSelected
-                      ? 'bg-indigo-500/20 border-indigo-500/50 text-white'
-                      : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                      ? 'bg-indigo-500/20 border-indigo-500/50 text-gray-900 dark:text-white'
+                      : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'
                   )}
                 >
                   <span
@@ -202,8 +202,8 @@ export function TaskForm({
           </div>
           {/* Selected tags display */}
           {selectedTagIds.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-white/10">
-              <span className="text-xs text-gray-400 mr-1">Selected:</span>
+            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
+              <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Selected:</span>
               {selectedTagIds.map((tagId) => {
                 const tag = availableTags.find((t) => t.id === tagId)
                 if (!tag) return null

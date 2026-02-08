@@ -75,8 +75,8 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
             <PriorityBadge priority={task.priority} size="sm" />
             <h3
               className={clsx(
-                'text-lg font-medium text-white',
-                task.completed && 'line-through text-gray-400'
+                'text-lg font-medium text-gray-900 dark:text-white',
+                task.completed && 'line-through text-gray-500 dark:text-gray-400'
               )}
             >
               {task.title}
@@ -95,7 +95,7 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
           {/* Description */}
           {task.description && (
             <div className="mt-2">
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">
+              <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
                 {displayDescription}
               </p>
               {shouldTruncate && (
@@ -120,9 +120,9 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
           )}
 
           {/* Meta info */}
-          <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
+          <div className="mt-3 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
             <span>Created: {formatDate(task.created_at)}</span>
-            <span className="text-gray-600">•</span>
+            <span className="text-gray-400 dark:text-gray-600">•</span>
             <span>#{task.id}</span>
           </div>
         </div>
