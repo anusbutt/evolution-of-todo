@@ -186,13 +186,13 @@ class ChatService:
         try:
             async with mcp_server:
                 external_client = AsyncOpenAI(
-                    api_key=settings.gemini_api_key,
-                    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+                    api_key=settings.llm_api_key,
+                    base_url=settings.llm_base_url,
                     timeout=30.0,
                 )
 
                 llm_model = OpenAIChatCompletionsModel(
-                    model="gemini-2.0-flash",
+                    model=settings.llm_model,
                     openai_client=external_client,
                 )
 
@@ -233,8 +233,8 @@ class ChatService:
 
         try:
             client = AsyncOpenAI(
-                api_key=settings.gemini_api_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+                api_key=settings.llm_api_key,
+                base_url=settings.llm_base_url,
                 timeout=30.0,
             )
 
@@ -242,7 +242,7 @@ class ChatService:
             api_messages.extend(history[-10:])
 
             response = await client.chat.completions.create(
-                model="gemini-2.0-flash",
+                model=settings.llm_model,
                 messages=api_messages,
             )
 

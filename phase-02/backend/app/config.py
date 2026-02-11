@@ -36,7 +36,27 @@ class Settings(BaseSettings):
 
     # AI Chatbot Configuration (Phase 3)
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
     mcp_server_url: str = Field(default="http://localhost:5001", alias="MCP_SERVER_URL")
+
+    @property
+    def llm_api_key(self) -> str:
+        """Return the best available LLM API key (Groq preferred over Gemini)."""
+        return self.groq_api_key or self.gemini_api_key
+
+    @property
+    def llm_base_url(self) -> str:
+        """Return the base URL for the LLM provider."""
+        if self.groq_api_key:
+            return "https://api.groq.com/openai/v1"
+        return "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+    @property
+    def llm_model(self) -> str:
+        """Return the model name for the LLM provider."""
+        if self.groq_api_key:
+            return "llama-3.3-70b-versatile"
+        return "gemini-2.0-flash"
 
     @property
     def cors_origins_list(self) -> list[str]:
