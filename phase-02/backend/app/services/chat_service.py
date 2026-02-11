@@ -150,23 +150,41 @@ class ChatService:
         from agents.mcp import MCPServerSse
         from openai import AsyncOpenAI
 
+        import httpx
+
         mcp_url = settings.mcp_server_url
         if not mcp_url or mcp_url == "http://localhost:5001":
-            # No MCP server configured, fall back to direct Gemini
             logger.info("No MCP server URL configured, falling back to direct Gemini call")
+            return await self._call_gemini_direct(user_id, message, history)
+
+        # Wake up MCP server first (HF Spaces sleeps after inactivity)
+        max_wake_attempts = 3
+        for attempt in range(max_wake_attempts):
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.get(f"{mcp_url}/health")
+                    if resp.status_code == 200:
+                        logger.info(f"MCP server awake (attempt {attempt + 1})")
+                        break
+            except Exception as e:
+                logger.info(f"MCP wake attempt {attempt + 1}/{max_wake_attempts}: {e}")
+                if attempt < max_wake_attempts - 1:
+                    import asyncio
+                    await asyncio.sleep(5)  # Wait 5s between retries
+        else:
+            logger.warning("MCP server did not wake up after retries, falling back to Gemini")
             return await self._call_gemini_direct(user_id, message, history)
 
         sse_url = f"{mcp_url}/sse"
         mcp_server = MCPServerSse(
-            params={"url": sse_url, "timeout": 15, "sse_read_timeout": 60},
+            params={"url": sse_url, "timeout": 30, "sse_read_timeout": 120},
             cache_tools_list=True,
             name="task-management-mcp",
-            client_session_timeout_seconds=15,
+            client_session_timeout_seconds=30,
         )
 
         try:
             async with mcp_server:
-                # Create Gemini-backed model
                 external_client = AsyncOpenAI(
                     api_key=settings.gemini_api_key,
                     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
@@ -178,7 +196,6 @@ class ChatService:
                     openai_client=external_client,
                 )
 
-                # Create agent with MCP server — LLM discovers tools automatically
                 agent = Agent(
                     name="TaskAssistant",
                     model=llm_model,
@@ -186,15 +203,11 @@ class ChatService:
                     mcp_servers=[mcp_server],
                 )
 
-                # Build input with conversation history
-                input_messages = history[-10:]  # Last 10 for context
-
-                # Run the agent
+                input_messages = history[-10:]
                 result = await Runner.run(agent, input=input_messages)
 
                 response_text = result.final_output or "I'm not sure how to help with that."
 
-                # Detect if a task was modified by checking if any tool was called
                 task_updated = False
                 for item in result.new_items:
                     if hasattr(item, 'type') and item.type == 'tool_call_item':
