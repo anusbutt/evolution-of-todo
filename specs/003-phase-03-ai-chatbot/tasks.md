@@ -367,7 +367,8 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 | 10 | Deployment (Vercel + HF) | 11 | 0 |
 | 11 | MCP Deploy (SSE) | 12 | 0 |
 | 12 | MCP Stdio Transport | 11 | 3 |
-| **Total** | | **104** | **27** |
+| 13 | Urdu Language Support | 5 | 0 |
+| **Total** | | **109** | **27** |
 
 ### Tasks per User Story
 
@@ -580,6 +581,42 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 
 ---
 
+## Phase 13: Urdu Language Support (User Story 10)
+
+**Purpose**: Enable Urdu-speaking users to interact with the chatbot in Urdu
+
+**Context**: Llama 3.3 70B natively supports Urdu. Only the system prompt needs updating — no new dependencies, no frontend/DB/API changes.
+
+**Depends on**: Phase 12 (chatbot must be working end-to-end)
+
+### System Prompt Update
+
+- [ ] T105 [US10] Add language detection instruction to `SYSTEM_PROMPT` in `phase-02/backend/app/services/chat_service.py` — instruct LLM to detect user's language and respond in the same language (English or Urdu)
+  - **Acceptance**: System prompt contains language matching instruction
+  - **Test**: Send Urdu message, receive Urdu response
+
+### Deploy and Verify
+
+- [ ] T106 [US10] Push updated backend to HF Space and verify deployment
+  - **Acceptance**: Container rebuilds successfully
+  - **Test**: Health check passes
+
+- [ ] T107 [US10] Test Urdu task creation: send an Urdu message to add a task
+  - **Acceptance**: Task is created with Urdu title, LLM responds in Urdu
+  - **Test**: Task appears in task list with correct Urdu text
+
+- [ ] T108 [US10] Test Urdu task listing: send an Urdu message to list tasks
+  - **Acceptance**: LLM responds in Urdu with formatted task list
+  - **Test**: Response is in Urdu, task titles display correctly
+
+- [ ] T109 [US10] Test English still works: send an English message after Urdu
+  - **Acceptance**: LLM responds in English (no language lock-in)
+  - **Test**: English response for English input
+
+**Checkpoint**: Chatbot responds in Urdu when user writes in Urdu, English when user writes in English. Task titles in any language stored and displayed correctly.
+
+---
+
 ## Notes
 
 - All tasks include exact file paths
@@ -591,3 +628,4 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 - Phase 10 (deployment): 11 tasks for Vercel + HF Spaces migration
 - Phase 11 (MCP deploy): 12 tasks for MCP server deployment + Agents SDK integration
 - Phase 12 (stdio transport): 11 tasks for bundling MCP in backend via stdio transport
+- Phase 13 (Urdu support): 5 tasks for multilingual chatbot via prompt update

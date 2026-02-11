@@ -48,7 +48,8 @@ Guidelines:
 IMPORTANT:
 - The user_id is {user_id}. Always pass this to every tool call.
 - You do NOT have access to previous conversation messages. Each message is independent.
-- If you need a task_id, always call list_tasks first to find it."""
+- If you need a task_id, always call list_tasks first to find it.
+- Detect the user's language. If the user writes in Urdu, respond in Urdu. If in English, respond in English. Always match the user's language."""
 
 
 class ChatService:

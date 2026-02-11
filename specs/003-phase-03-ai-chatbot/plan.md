@@ -484,3 +484,19 @@ phase-02/backend/
 │       └── chat_service.py  # Modified: MCPServerSse → MCPServerStdio
 └── Dockerfile               # Modified: add mcp[cli] + asyncpg dependencies
 ```
+
+### Urdu Language Support
+
+**Approach**: LLM-native language detection — no translation layer, no i18n library.
+
+The system prompt in `chat_service.py` instructs the LLM to detect the user's language and respond in the same language. Llama 3.3 70B supports Urdu natively (trained on multilingual data).
+
+**What changes**: One line added to `SYSTEM_PROMPT` in `chat_service.py`.
+
+**What doesn't change**: Frontend (React renders UTF-8), Database (PostgreSQL stores UTF-8), MCP tools (pass strings, language-agnostic), API (JSON supports Unicode).
+
+```
+User: "دودھ خریدنا ہے"  →  LLM detects Urdu
+                          →  calls add_task(title="دودھ خریدنا")
+                          →  responds in Urdu
+```

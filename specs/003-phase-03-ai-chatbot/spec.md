@@ -190,7 +190,7 @@ As a user, I want to open and close the chat sidebar with a button, so I can acc
 
 ### Out of Scope
 - Voice input/output
-- Multi-language support (English only for Phase 3)
+- Multi-language support beyond English and Urdu
 - Persistent conversation history across sessions
 - Task scheduling or reminders via chat
 - Integration with external calendars
@@ -273,6 +273,25 @@ As a developer, I want the MCP server to run as a subprocess inside the backend 
 5. **Given** the MCP server code is bundled in the backend, **When** the backend container builds, **Then** all MCP dependencies (`mcp[cli]`, `asyncpg`) are included in the Dockerfile
 
 **Architecture change**: MCP transport switches from SSE (network-based, `MCPServerSse`) to stdio (subprocess-based, `MCPServerStdio`). MCP server code (`server_stdio.py`, `tools.py`, `db.py`) is copied into `phase-02/backend/mcp_server/` and runs as a child process of the FastAPI backend. The separate HF Space (`anusbutt/mcp-servers`) remains available for external testing but is no longer required by the backend.
+
+---
+
+### User Story 10 - Urdu Language Support (Priority: P2)
+
+As a user, I want to interact with the chatbot in Urdu, so I can manage my tasks in my native language.
+
+**Why this priority**: Enhances accessibility for Urdu-speaking users. Requires only a system prompt change — no new infrastructure, dependencies, or UI modifications.
+
+**Independent Test**: Type an Urdu message in the chat and verify the chatbot responds in Urdu and correctly executes the task operation.
+
+**Acceptance Scenarios**:
+
+1. **Given** a user types a task request in Urdu, **When** the LLM processes the message, **Then** it responds in Urdu and calls the appropriate MCP tool
+2. **Given** a user types in English, **When** the LLM processes the message, **Then** it responds in English (existing behavior unchanged)
+3. **Given** a user creates a task with an Urdu title, **When** the task is saved, **Then** the Urdu text is stored correctly in PostgreSQL (UTF-8) and displayed properly in the UI
+4. **Given** a user asks to list tasks in Urdu, **When** the LLM calls list_tasks, **Then** the response is formatted in Urdu with Urdu task titles displayed correctly
+
+**Implementation**: Single change to the system prompt in `chat_service.py` — add language detection and matching instruction. The LLM (Llama 3.3 70B) already supports Urdu natively. PostgreSQL, JSON, and React all handle UTF-8 by default.
 
 ---
 
