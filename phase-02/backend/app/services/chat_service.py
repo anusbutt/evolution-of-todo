@@ -195,9 +195,9 @@ class ChatService:
                     mcp_servers=[mcp_server],
                 )
 
-                # Only send last 4 messages (2 turns) to avoid stale history
-                # contaminating the LLM's understanding of the current request
-                input_messages = history[-4:]
+                # Send only the current user message to avoid stale history
+                # contaminating the LLM. MCP tools are stateless (user_id in every call).
+                input_messages = [{"role": "user", "content": message}]
                 result = await Runner.run(agent, input=input_messages)
 
                 response_text = result.final_output or "I'm not sure how to help with that."
