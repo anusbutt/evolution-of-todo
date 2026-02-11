@@ -33,12 +33,12 @@ RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# Expose MCP server port
-EXPOSE 5001
+# Expose port (HF Spaces requires 7860)
+EXPOSE 7860
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:5001/health || exit 1
+    CMD curl -f http://localhost:${MCP_PORT:-7860}/health || exit 1
 
 # Run the MCP server
 CMD ["python", "server.py"]

@@ -313,7 +313,7 @@ MCP_PORT=5001
 
 The DigitalOcean DOKS cluster was deleted to stop ~$36/mo billing. The application is migrated to free-tier hosting: Vercel (frontend) + Railway (backend). The Neon PostgreSQL database is unchanged.
 
-**Services excluded**: Audit Service and MCP Server (require Dapr/Redpanda — not viable on free tier). `DAPR_ENABLED=false` by default.
+**Services excluded**: Audit Service (requires Dapr/Redpanda — not viable on free tier). `DAPR_ENABLED=false` by default.
 
 ### Architecture Diagram
 
@@ -328,24 +328,38 @@ The DigitalOcean DOKS cluster was deleted to stop ~$36/mo billing. The applicati
 │          Vercel (Frontend)              │
 │          Next.js SSR + Static           │
 │                                         │
-│  Rewrite: /api/* → Railway backend      │
+│  Rewrite: /api/* → HF Spaces backend   │
 │  (same-origin proxy — no CORS needed    │
 │   for browser requests)                 │
 └────────────┬────────────────────────────┘
              │ HTTPS (server-side rewrite)
              ▼
 ┌─────────────────────────────────────────┐
-│         Railway (Backend)               │
-│         FastAPI + Uvicorn               │
+│      HF Spaces (Backend)               │
+│      FastAPI + Uvicorn (:7860)          │
+│      anusbutt-todo-app.hf.space         │
 │                                         │
-│  --proxy-headers --forwarded-allow-ips *│
-│  TLS terminated at Railway proxy        │
-│  Cookies: SameSite=None, Secure=True    │
-└────────────┬────────────────────────────┘
-             │ SSL (asyncpg)
-             ▼
+│  Chat: Agents SDK → MCP Server ────────┼──┐
+│  Cookies: SameSite=None, Secure=True    │  │
+└────────────┬────────────────────────────┘  │
+             │                               │ HTTPS (SSE transport)
+             │ SSL (asyncpg)                 ▼
+             │              ┌─────────────────────────────────┐
+             │              │   HF Spaces (MCP Server)        │
+             │              │   Starlette + Uvicorn (:7860)   │
+             │              │   anusbutt-todo-mcp-server       │
+             │              │   .hf.space                     │
+             │              │                                 │
+             │              │   Tools: add_task, list_tasks,  │
+             │              │   complete_task, delete_task,    │
+             │              │   update_task                   │
+             │              └──────────┬──────────────────────┘
+             │                         │ SSL (asyncpg)
+             ▼                         ▼
 ┌─────────────────────────────────────────┐
-│       Neon PostgreSQL (unchanged)       │
+│       Neon PostgreSQL (shared)          │
+│  Tables: users, tasks, conversations,  │
+│  messages, tags, audit_logs             │
 └─────────────────────────────────────────┘
 ```
 
@@ -373,4 +387,43 @@ Since the Vercel rewrite proxy forwards cookies between domains, cookies must be
 
 - **Dockerfile CMD**: `--proxy-headers --forwarded-allow-ips *` trusts Railway's reverse proxy headers
 - **No HTTP→HTTPS redirect**: Railway terminates TLS at its proxy and forwards HTTP internally; the app-level redirect causes infinite loops
-- **Environment variables**: DATABASE_URL, JWT_SECRET, ENVIRONMENT=production, CORS_ORIGINS, GEMINI_API_KEY, DAPR_ENABLED=false, PORT=8000
+- **Environment variables**: DATABASE_URL, JWT_SECRET, ENVIRONMENT=production, CORS_ORIGINS, GEMINI_API_KEY, DAPR_ENABLED=false, PORT=7860
+
+### MCP Server Deployment (HF Spaces)
+
+The MCP server runs as a second HF Space. It has **no Dapr/Redpanda dependency** — only needs `DATABASE_URL` to connect to the shared Neon PostgreSQL database.
+
+**MCP Server config**:
+- **HF Space**: `anusbutt/todo-mcp-server`
+- **Source**: `phase-03/mcp-servers/`
+- **Port**: 7860 (HF Spaces requirement, overrides default 5001)
+- **Dockerfile**: Already exists at `phase-03/mcp-servers/Dockerfile`
+- **Transport**: SSE (Server-Sent Events) at `/sse` and `/messages` endpoints
+- **Health check**: `GET /health`
+
+**Environment variables (HF Secrets)**:
+- `DATABASE_URL` — same Neon connection string as backend
+- `MCP_PORT` — `7860`
+
+**Backend integration**:
+- `MCP_SERVER_URL` on backend Space set to `https://anusbutt-todo-mcp-server.hf.space`
+- `chat_service.py` refactored to use OpenAI Agents SDK with MCP transport instead of keyword matching + direct DB calls
+
+### Chat Architecture: Keyword Matching → LLM-Driven (MCP)
+
+**Before (current)**:
+```
+User message → keyword match ("add" in msg?) → direct DB insert → response
+```
+- Brittle: misses "I need milk", "remember to call mom"
+- Can't chain: "add milk and show my list" only does one action
+- No LLM reasoning for tool selection
+
+**After (with MCP)**:
+```
+User message → Agents SDK → Gemini LLM → decides tool(s) → MCP Server (SSE) → DB → response
+```
+- LLM understands intent from context, not keywords
+- Can chain multiple tools in one turn
+- MCP server is discoverable — LLM auto-learns available tools
+- Fallback: if MCP server is down, return user-friendly error

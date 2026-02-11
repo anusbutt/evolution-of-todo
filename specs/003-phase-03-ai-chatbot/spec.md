@@ -232,7 +232,27 @@ As a developer, I want to deploy the frontend to Vercel and the backend to Railw
 5. **Given** I am logged in, **When** I create/read/update/delete tasks, **Then** all CRUD operations succeed
 6. **Given** Railway terminates TLS at its proxy, **When** the backend receives requests, **Then** no infinite HTTP→HTTPS redirect loop occurs
 
-**Services excluded from migration**: Audit Service and MCP Server (require Dapr/Redpanda infrastructure not available on free tier). `DAPR_ENABLED` is already `false` by default.
+**Services excluded from migration**: Audit Service (requires Dapr/Redpanda infrastructure not available on free tier). `DAPR_ENABLED` is already `false` by default.
+
+---
+
+### User Story 8 - Deploy MCP Server and Enable LLM-Driven Chat (Priority: P1)
+
+As a user, I want the AI chatbot to use LLM reasoning (via MCP tools) instead of keyword matching, so the chatbot understands natural language more intelligently (e.g., "I need milk" creates a task, not just "add milk").
+
+**Why this priority**: The current chatbot uses brittle keyword matching (`"add" in message`). Deploying the MCP server and wiring it to the OpenAI Agents SDK enables the LLM to decide which tool to call, dramatically improving intent recognition and enabling multi-step interactions.
+
+**Independent Test**: Type "I really need to grab some milk on my way home" in the chat — a task should be created (currently it falls through to Gemini fallback without creating a task).
+
+**Acceptance Scenarios**:
+
+1. **Given** the MCP server is deployed on HF Spaces, **When** I call `GET /health`, **Then** I receive `{"status": "ok", "service": "mcp-server"}`
+2. **Given** the backend's `MCP_SERVER_URL` points to the MCP Space, **When** a user sends a chat message, **Then** the backend connects to the MCP server via SSE transport
+3. **Given** the Agents SDK is configured with MCP tools, **When** a user says "I need milk", **Then** the LLM calls `add_task` (not keyword match) and a task is created
+4. **Given** the user says "Add milk and show my list", **When** the LLM processes the message, **Then** it chains `add_task` then `list_tasks` in one turn
+5. **Given** the MCP server is unavailable, **When** a user sends a chat message, **Then** the backend falls back gracefully with a user-friendly error message
+
+**Architecture change**: Backend `chat_service.py` switches from keyword-matching + direct DB calls to OpenAI Agents SDK with MCP server connection. The MCP server runs as a second HF Space, sharing the same Neon PostgreSQL database.
 
 ---
 

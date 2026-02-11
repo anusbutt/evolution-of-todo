@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     # Server
-    mcp_port: int = int(os.getenv("MCP_PORT", "5001"))
+    mcp_port: int = int(os.getenv("MCP_PORT", "7860"))
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"
 
     class Config:

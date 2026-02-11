@@ -445,6 +445,73 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 
 ---
 
+## Phase 11: Deploy MCP Server + Enable LLM-Driven Chat (User Story 8)
+
+**Purpose**: Deploy MCP server to HF Spaces and refactor chat_service.py to use Agents SDK with MCP tools instead of keyword matching
+
+**Context**: MCP server has no Dapr/Redpanda dependency — only needs DATABASE_URL. Deploying it enables true LLM-driven tool selection.
+
+**Depends on**: Phase 10 (backend must be deployed first)
+
+### MCP Server Deployment
+
+- [ ] T082 [US8] Update MCP server Dockerfile port from 5001 to 7860 in `phase-03/mcp-servers/Dockerfile` — HF Spaces requires port 7860
+  - **Acceptance**: Dockerfile EXPOSE and CMD use port 7860
+  - **Test**: `docker build` succeeds
+
+- [ ] T083 [US8] Update MCP server config to read PORT from env var in `phase-03/mcp-servers/config.py` — allow HF Spaces to set port via `MCP_PORT` env var
+  - **Acceptance**: Server starts on `MCP_PORT` if set, otherwise 7860
+  - **Test**: `MCP_PORT=7860 python server.py` starts on 7860
+
+- [ ] T084 [US8] Create HF Space `anusbutt/todo-mcp-server` with Docker SDK
+  - **Acceptance**: Space created and visible at huggingface.co/spaces/anusbutt/todo-mcp-server
+  - **Test**: Space page loads
+
+- [ ] T085 [US8] Push `phase-03/mcp-servers/` code to HF Space repo
+  - **Acceptance**: All MCP server files pushed, build starts
+  - **Test**: HF build logs show successful Docker build
+
+- [ ] T086 [US8] Configure HF Space secrets: DATABASE_URL, MCP_PORT=7860
+  - **Acceptance**: Secrets set in Space settings
+  - **Test**: Factory reboot → server starts without missing-env-var errors
+
+- [ ] T087 [US8] Verify MCP server health: `GET /health` returns OK
+  - **Acceptance**: `curl https://anusbutt-todo-mcp-server.hf.space/health` returns `{"status": "ok"}`
+  - **Test**: HTTP 200 response
+
+### Backend Integration
+
+- [ ] T088 [US8] Add `MCP_SERVER_URL` secret to backend HF Space pointing to MCP server URL
+  - **Acceptance**: Backend Space has `MCP_SERVER_URL=https://anusbutt-todo-mcp-server.hf.space`
+  - **Test**: Backend restarts and can resolve the MCP URL
+
+- [ ] T089 [US8] Refactor `phase-02/backend/app/services/chat_service.py` — replace keyword matching + direct DB calls with OpenAI Agents SDK + MCP server connection via SSE transport
+  - **Acceptance**: `_call_agent()` uses `Runner.run()` with MCP server, not keyword `if/elif` chains
+  - **Test**: "I need milk" creates a task (currently falls through to Gemini fallback)
+  - **Fallback**: If MCP server unreachable, return user-friendly error message
+
+- [ ] T090 [US8] Push updated backend code to HF Space and verify deployment
+  - **Acceptance**: Backend rebuilds successfully on HF Spaces
+  - **Test**: Container logs show successful startup
+
+### End-to-End Verification
+
+- [ ] T091 [US8] Test LLM-driven task creation: "I really need to grab some milk on my way home"
+  - **Acceptance**: Task "grab some milk" (or similar) is created
+  - **Test**: Task appears in task list after chat message
+
+- [ ] T092 [US8] Test multi-step: "Add buy groceries and show my tasks"
+  - **Acceptance**: Task is created AND task list is returned in one response
+  - **Test**: Chat response confirms task creation and shows full list
+
+- [ ] T093 [US8] Test MCP server down fallback: stop MCP Space and send chat message
+  - **Acceptance**: Backend returns friendly error, no 500 crash
+  - **Test**: "Sorry, I'm having trouble..." message displayed in chat
+
+**Checkpoint**: Chat uses LLM reasoning for intent detection, multi-step works, graceful fallback on MCP failure
+
+---
+
 ## Notes
 
 - All tasks include exact file paths
@@ -453,4 +520,5 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 - MVP = 45 tasks (Phases 1-4) for core chat + task creation
 - Full feature = 70 tasks including all CRUD operations
 - MCP tools are independently testable via curl to port 5001
-- Phase 10 (deployment): 11 tasks for Vercel + Railway migration
+- Phase 10 (deployment): 11 tasks for Vercel + HF Spaces migration
+- Phase 11 (MCP deploy): 12 tasks for MCP server deployment + Agents SDK integration
