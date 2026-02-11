@@ -379,6 +379,72 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 
 ---
 
+---
+
+## Phase 10: Deployment Migration — Vercel + Railway (User Story 7)
+
+**Purpose**: Migrate from deleted DOKS cluster to free-tier hosting (Vercel frontend, Railway backend)
+
+**Context**: DOKS deleted to stop ~$36/mo billing. Neon PostgreSQL stays. Audit Service and MCP Server skipped (require Dapr/Redpanda).
+
+### Backend Code Changes
+
+- [x] T071 [US7] Fix cross-origin cookies in `phase-02/backend/app/routes/auth.py` — set `samesite="none"`, `secure=True`, `path="/"` on all 3 cookie operations (signup, login, logout)
+  - **Acceptance**: Cookie attributes include SameSite=None and Secure in HTTP response headers
+  - **Test**: `curl -v POST /api/auth/login` shows `Set-Cookie` with `SameSite=None; Secure; Path=/`
+
+- [x] T072 [US7] Remove HTTP→HTTPS redirect in `phase-02/backend/app/main.py` (lines 82-89) — Railway terminates TLS at proxy, causing infinite redirect loop
+  - **Acceptance**: No 301 redirect when backend receives HTTP request in production
+  - **Test**: `curl http://localhost:8000/health` returns 200, not 301
+
+- [x] T073 [US7] Add proxy headers to backend Dockerfile CMD in `phase-02/backend/Dockerfile` — add `--proxy-headers --forwarded-allow-ips *` to uvicorn
+  - **Acceptance**: Dockerfile CMD includes proxy-headers flags
+  - **Test**: `docker build` succeeds; uvicorn logs show proxy headers enabled
+
+### Frontend Code Changes
+
+- [x] T074 [US7] Update rewrite config in `phase-02/frontend/next.config.ts` — require `INTERNAL_API_URL` env var (no hardcoded Docker-internal fallback)
+  - **Acceptance**: Rewrites use `process.env.INTERNAL_API_URL`; returns empty array if not set
+  - **Test**: `INTERNAL_API_URL=http://localhost:8000 npm run build` succeeds
+
+### Deploy Backend on Railway
+
+- [ ] T075 [US7] Deploy backend to Railway: New Project → GitHub repo, Root Directory `phase-02/backend`, Dockerfile builder
+  - **Acceptance**: Railway deployment succeeds, service is running
+  - **Test**: `curl <railway-url>/health` returns `{"status": "healthy"}`
+
+- [ ] T076 [US7] Configure Railway environment variables: DATABASE_URL, JWT_SECRET, ENVIRONMENT=production, GEMINI_API_KEY, DAPR_ENABLED=false, PORT=8000
+  - **Acceptance**: All required env vars are set in Railway dashboard
+  - **Test**: Backend starts without missing-env-var errors
+
+### Deploy Frontend on Vercel
+
+- [ ] T077 [US7] Deploy frontend to Vercel: Import GitHub repo, Root Directory `phase-02/frontend`, Install Command `npm install --legacy-peer-deps`
+  - **Acceptance**: Vercel build and deployment succeeds
+  - **Test**: Vercel URL loads the landing page
+
+- [ ] T078 [US7] Set Vercel env var `INTERNAL_API_URL` to Railway backend URL
+  - **Acceptance**: Vercel rewrite proxy forwards `/api/*` to Railway
+  - **Test**: `curl <vercel-url>/api/health` returns backend health response
+
+### Connect Frontend ↔ Backend
+
+- [ ] T079 [US7] Update Railway `CORS_ORIGINS` env var to include Vercel URL
+  - **Acceptance**: Railway auto-redeploys with new CORS origins
+  - **Test**: No CORS errors in browser console
+
+### End-to-End Verification
+
+- [ ] T080 [US7] Verify full auth flow: signup → login → cookie persistence across refresh → logout
+  - **Acceptance**: User can sign up, log in, refresh page (stays authenticated), and log out
+  - **Test**: Manual browser test on Vercel URL
+
+- [ ] T081 [US7] Verify task CRUD: create → read → update → delete tasks
+  - **Acceptance**: All task operations work through the Vercel-proxied API
+  - **Test**: Create a task, verify it appears, update title, delete it
+
+---
+
 ## Notes
 
 - All tasks include exact file paths
@@ -387,3 +453,4 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 - MVP = 45 tasks (Phases 1-4) for core chat + task creation
 - Full feature = 70 tasks including all CRUD operations
 - MCP tools are independently testable via curl to port 5001
+- Phase 10 (deployment): 11 tasks for Vercel + Railway migration

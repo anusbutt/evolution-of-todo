@@ -306,3 +306,71 @@ MCP_SERVER_URL=http://localhost:5001
 DATABASE_URL=postgresql+asyncpg://...  # Same as backend
 MCP_PORT=5001
 ```
+
+## Deployment Architecture: Vercel + Railway
+
+### Context
+
+The DigitalOcean DOKS cluster was deleted to stop ~$36/mo billing. The application is migrated to free-tier hosting: Vercel (frontend) + Railway (backend). The Neon PostgreSQL database is unchanged.
+
+**Services excluded**: Audit Service and MCP Server (require Dapr/Redpanda — not viable on free tier). `DAPR_ENABLED=false` by default.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────┐
+│            User's Browser               │
+│  https://<app>.vercel.app               │
+└────────────┬────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────┐
+│          Vercel (Frontend)              │
+│          Next.js SSR + Static           │
+│                                         │
+│  Rewrite: /api/* → Railway backend      │
+│  (same-origin proxy — no CORS needed    │
+│   for browser requests)                 │
+└────────────┬────────────────────────────┘
+             │ HTTPS (server-side rewrite)
+             ▼
+┌─────────────────────────────────────────┐
+│         Railway (Backend)               │
+│         FastAPI + Uvicorn               │
+│                                         │
+│  --proxy-headers --forwarded-allow-ips *│
+│  TLS terminated at Railway proxy        │
+│  Cookies: SameSite=None, Secure=True    │
+└────────────┬────────────────────────────┘
+             │ SSL (asyncpg)
+             ▼
+┌─────────────────────────────────────────┐
+│       Neon PostgreSQL (unchanged)       │
+└─────────────────────────────────────────┘
+```
+
+### Rewrite-Proxy Approach
+
+Vercel's `next.config.ts` rewrites proxy `/api/*` requests server-side to the Railway backend URL. This makes API calls appear same-origin to the browser, avoiding CORS issues for most requests. The `INTERNAL_API_URL` env var on Vercel points to the Railway backend URL.
+
+```typescript
+// next.config.ts
+async rewrites() {
+  const backendUrl = process.env.INTERNAL_API_URL
+  if (!backendUrl) return []
+  return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }]
+}
+```
+
+### Cross-Origin Cookie Strategy
+
+Since the Vercel rewrite proxy forwards cookies between domains, cookies must be configured for cross-origin:
+- `SameSite=None` — required for cross-origin cookie sending
+- `Secure=True` — required when SameSite=None (both Vercel and Railway use HTTPS)
+- `path="/"` — cookie available on all paths
+
+### Railway Backend Configuration
+
+- **Dockerfile CMD**: `--proxy-headers --forwarded-allow-ips *` trusts Railway's reverse proxy headers
+- **No HTTP→HTTPS redirect**: Railway terminates TLS at its proxy and forwards HTTP internally; the app-level redirect causes infinite loops
+- **Environment variables**: DATABASE_URL, JWT_SECRET, ENVIRONMENT=production, CORS_ORIGINS, GEMINI_API_KEY, DAPR_ENABLED=false, PORT=8000

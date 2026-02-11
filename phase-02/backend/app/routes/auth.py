@@ -52,13 +52,14 @@ async def signup(
         expires_delta=timedelta(days=settings.jwt_expiration_days)
     )
 
-    # Set httpOnly cookie
+    # Set httpOnly cookie (cross-origin: SameSite=None requires Secure=True)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=settings.is_production,  # HTTPS only in production
-        samesite="lax",
+        secure=True,
+        samesite="none",
+        path="/",
         max_age=settings.jwt_expiration_days * 24 * 60 * 60  # Convert days to seconds
     )
 
@@ -100,13 +101,14 @@ async def login(
         expires_delta=timedelta(days=settings.jwt_expiration_days)
     )
 
-    # Set httpOnly cookie
+    # Set httpOnly cookie (cross-origin: SameSite=None requires Secure=True)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=settings.is_production,
-        samesite="lax",
+        secure=True,
+        samesite="none",
+        path="/",
         max_age=settings.jwt_expiration_days * 24 * 60 * 60
     )
 
@@ -132,8 +134,9 @@ async def logout(
     response.delete_cookie(
         key="access_token",
         httponly=True,
-        secure=settings.is_production,
-        samesite="lax"
+        secure=True,
+        samesite="none",
+        path="/"
     )
 
     # T062: Return flag to clear frontend conversation state

@@ -78,16 +78,6 @@ async def security_and_logging_middleware(request: Request, call_next):
     """
     start_time = time.time()
 
-    # HTTPS enforcement (T128) - only in production
-    if settings.environment == "production":
-        if request.url.scheme == "http":
-            # Redirect HTTP to HTTPS
-            https_url = str(request.url).replace("http://", "https://", 1)
-            return Response(
-                status_code=301,
-                headers={"Location": https_url}
-            )
-
     # Process request
     response = await call_next(request)
 

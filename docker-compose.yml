@@ -1,12 +1,13 @@
 services:
   frontend:
     build:
-      context: ./frontend
+      context: ./phase-02/frontend
       dockerfile: Dockerfile
     image: todo-frontend:latest
     ports:
       - "3000:3000"
     environment:
+      - HOSTNAME=0.0.0.0
       - INTERNAL_API_URL=http://backend:8000
     depends_on:
       - backend
@@ -16,7 +17,7 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ./phase-02/backend
       dockerfile: Dockerfile
     image: todo-backend:latest
     ports:
@@ -35,7 +36,7 @@ services:
 
   mcp-server:
     build:
-      context: ./mcp-server
+      context: ./phase-03/mcp-servers
       dockerfile: Dockerfile
     image: todo-mcp-server:latest
     ports:

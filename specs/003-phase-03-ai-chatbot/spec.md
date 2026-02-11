@@ -213,8 +213,34 @@ As a user, I want to open and close the chat sidebar with a button, so I can acc
 - OpenAI Agents SDK compatibility with Gemini
 - MCP SDK for Python
 
+---
+
+### User Story 7 - Deploy to Vercel + Railway (Priority: P1)
+
+As a developer, I want to deploy the frontend to Vercel and the backend to Railway, so the application is publicly accessible on free-tier hosting after the DOKS cluster was decommissioned.
+
+**Why this priority**: Without deployment, the application is not accessible to users. Migration from DOKS (deleted to stop ~$36/mo billing) to free-tier hosting is required.
+
+**Independent Test**: Can be verified by accessing the Vercel URL and performing signup, login, task CRUD, and chat operations.
+
+**Acceptance Scenarios**:
+
+1. **Given** the backend is deployed on Railway, **When** I call `GET /health`, **Then** I receive a 200 response
+2. **Given** the frontend is deployed on Vercel, **When** I visit the Vercel URL, **Then** the landing page loads
+3. **Given** Vercel rewrites `/api/*` to Railway, **When** I call `/api/auth/me` unauthenticated, **Then** I receive a 401 response (not a CORS error)
+4. **Given** I sign up on the Vercel frontend, **When** the backend sets a cookie, **Then** the cookie persists across page refreshes (SameSite=None, Secure=True)
+5. **Given** I am logged in, **When** I create/read/update/delete tasks, **Then** all CRUD operations succeed
+6. **Given** Railway terminates TLS at its proxy, **When** the backend receives requests, **Then** no infinite HTTP→HTTPS redirect loop occurs
+
+**Services excluded from migration**: Audit Service and MCP Server (require Dapr/Redpanda infrastructure not available on free tier). `DAPR_ENABLED` is already `false` by default.
+
+---
+
 ## Risks
 
 - **LLM Response Variability**: AI responses may vary; mitigate with clear system prompts and tool definitions
 - **API Rate Limits**: Gemini API may have rate limits; mitigate with error handling and user feedback
 - **Context Window Limits**: Long conversations may exceed context limits; mitigate with session-based clearing
+- **Railway free tier cold starts**: 10-30s wake time after inactivity; mitigate with user-facing loading states
+- **Vercel rewrite timeout**: 10s limit on free tier; mitigate with fast backend responses
+- **Cross-origin cookies**: Some browsers block third-party cookies; mitigated by Vercel rewrite proxy making requests same-origin

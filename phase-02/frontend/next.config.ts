@@ -5,15 +5,18 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Enable standalone output for Docker deployment
-  output: 'standalone',
-  // Proxy /api/* requests to backend service (DOKS cluster-internal routing)
-  // This allows the frontend LoadBalancer to be the single entry point
+  // Proxy /api/* requests to backend service
+  // Vercel: set INTERNAL_API_URL to Railway backend URL
+  // Docker: falls back to http://backend:8000 for local development
   async rewrites() {
+    const backendUrl = process.env.INTERNAL_API_URL
+    if (!backendUrl) {
+      return []
+    }
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.INTERNAL_API_URL || 'http://backend:8000'}/api/:path*`,
+        destination: `${backendUrl}/api/:path*`,
       },
     ]
   },
