@@ -195,7 +195,9 @@ class ChatService:
                     mcp_servers=[mcp_server],
                 )
 
-                input_messages = history[-10:]
+                # Only send last 4 messages (2 turns) to avoid stale history
+                # contaminating the LLM's understanding of the current request
+                input_messages = history[-4:]
                 result = await Runner.run(agent, input=input_messages)
 
                 response_text = result.final_output or "I'm not sure how to help with that."
