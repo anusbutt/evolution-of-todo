@@ -162,6 +162,7 @@ class ChatService:
             },
             cache_tools_list=True,
             name="task-management-mcp",
+            client_session_timeout_seconds=30,
         )
 
         try:
