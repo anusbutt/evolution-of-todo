@@ -131,9 +131,12 @@ async def handle_call_tool(name: str, arguments: dict):
 
     handler = tool_map.get(name)
     if not handler:
+        logger.error(f"Unknown tool: {name}")
         return [TextContent(type="text", text=json.dumps({"success": False, "error": f"Unknown tool: {name}"}))]
 
+    logger.info(f"Calling tool '{name}' with args: {arguments}")
     result = await handler(arguments)
+    logger.info(f"Tool '{name}' result: {result}")
     return [TextContent(type="text", text=json.dumps(result))]
 
 
