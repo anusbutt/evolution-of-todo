@@ -45,7 +45,10 @@ Guidelines:
 - Always respond in a helpful, conversational tone
 - If listing tasks before completing/deleting, tell the user the task IDs so they can reference them
 
-Remember: The user_id is {user_id}. Always pass this to every tool call."""
+IMPORTANT:
+- The user_id is {user_id}. Always pass this to every tool call.
+- Always act on the user's MOST RECENT message. Ignore failed attempts from earlier in the conversation.
+- If previous tool calls failed, do NOT repeat them — focus only on what the user just asked."""
 
 
 class ChatService:
