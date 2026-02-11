@@ -155,10 +155,17 @@ class ChatService:
         from agents.mcp import MCPServerStdio
         from openai import AsyncOpenAI
 
+        # Pass DATABASE_URL explicitly to subprocess — the env var may use
+        # a different name or format in the parent process
+        import os
+        subprocess_env = os.environ.copy()
+        subprocess_env["DATABASE_URL"] = settings.database_url
+
         mcp_server = MCPServerStdio(
             params={
                 "command": sys.executable,
                 "args": [MCP_SERVER_SCRIPT],
+                "env": subprocess_env,
             },
             cache_tools_list=True,
             name="task-management-mcp",
