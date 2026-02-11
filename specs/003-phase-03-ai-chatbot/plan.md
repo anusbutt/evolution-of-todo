@@ -419,11 +419,68 @@ User message → keyword match ("add" in msg?) → direct DB insert → response
 - Can't chain: "add milk and show my list" only does one action
 - No LLM reasoning for tool selection
 
-**After (with MCP)**:
+**After (with MCP via SSE — failed on HF Spaces)**:
 ```
-User message → Agents SDK → Gemini LLM → decides tool(s) → MCP Server (SSE) → DB → response
+User message → Agents SDK → LLM → decides tool(s) → MCP Server (SSE over network) → DB → response
+```
+- Failed: HF Spaces containers cannot DNS-resolve other HF Spaces hostnames
+- Error: `[Errno -2] Name or service not known` when connecting to `anusbutt-mcp-servers.hf.space`
+
+**After (with MCP via Stdio — current approach)**:
+```
+User message → Agents SDK → LLM → decides tool(s) → MCP Server (stdio subprocess) → DB → response
 ```
 - LLM understands intent from context, not keywords
 - Can chain multiple tools in one turn
 - MCP server is discoverable — LLM auto-learns available tools
-- Fallback: if MCP server is down, return user-friendly error
+- No network needed — MCP server runs as subprocess inside backend container
+- Fallback: if subprocess fails, return user-friendly error
+
+### MCP Transport: SSE vs Stdio
+
+| Aspect | SSE (MCPServerSse) | Stdio (MCPServerStdio) |
+|--------|-------------------|----------------------|
+| Communication | HTTP/SSE over network | stdin/stdout pipes |
+| Deployment | Separate container/service | Bundled in backend container |
+| DNS required | Yes (fails on HF Spaces) | No (in-process) |
+| Scaling | Independent scaling | Scales with backend |
+| Code location | `phase-03/mcp-servers/` | `phase-02/backend/mcp_server/` (copy) |
+| Entrypoint | `server.py` (Starlette HTTP) | `server_stdio.py` (MCP stdio) |
+
+### Stdio Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────┐
+│  Backend HF Space Container (port 7860)         │
+│                                                 │
+│  FastAPI (main process)                         │
+│    │                                            │
+│    │ user sends chat message                    │
+│    ▼                                            │
+│  chat_service.py                                │
+│    │                                            │
+│    │ MCPServerStdio spawns subprocess           │
+│    ▼                                            │
+│  mcp_server/server_stdio.py (child process)     │
+│    │  stdin ◄── Agent sends tool calls          │
+│    │  stdout ──► Agent receives tool results    │
+│    │                                            │
+│    ▼                                            │
+│  Neon PostgreSQL (external, via DATABASE_URL)   │
+└─────────────────────────────────────────────────┘
+```
+
+### Bundled MCP Server Structure
+
+```text
+phase-02/backend/
+├── mcp_server/              # Bundled MCP server (copied from phase-03)
+│   ├── __init__.py
+│   ├── server_stdio.py      # NEW: stdio entrypoint (mcp.run transport="stdio")
+│   ├── tools.py             # Copied from phase-03/mcp-servers/tools.py
+│   └── db.py                # Copied from phase-03/mcp-servers/db.py
+├── app/
+│   └── services/
+│       └── chat_service.py  # Modified: MCPServerSse → MCPServerStdio
+└── Dockerfile               # Modified: add mcp[cli] + asyncpg dependencies
+```

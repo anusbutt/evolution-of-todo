@@ -1,11 +1,13 @@
-# [Task]: T031-T037, T048, T089 [US1, US2, US8] | [Spec]: specs/003-phase-03-ai-chatbot/plan.md
+# [Task]: T031-T037, T048, T089, T099 [US1, US2, US8, US9] | [Spec]: specs/003-phase-03-ai-chatbot/plan.md
 """
 Chat Service - Orchestrates AI chatbot interactions.
-T089: Refactored to use OpenAI Agents SDK with MCP server connection via SSE transport.
-Falls back to direct API call if MCP server is unavailable.
+T099: Refactored to use OpenAI Agents SDK with MCP server via stdio transport (subprocess).
+Falls back to direct LLM call if MCP subprocess is unavailable.
 """
 import logging
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
@@ -17,6 +19,9 @@ from app.models.conversation import Conversation
 from app.models.message import Message
 
 logger = logging.getLogger(__name__)
+
+# Path to the bundled MCP server stdio entrypoint
+MCP_SERVER_SCRIPT = str(Path(__file__).resolve().parent.parent.parent / "mcp_server" / "server_stdio.py")
 
 # T032, T048: Agent system prompt for task management
 SYSTEM_PROMPT = """You are a helpful task management assistant. You help users manage their tasks through natural language.
@@ -112,7 +117,7 @@ class ChatService:
 
             messages = [{"role": msg.role, "content": msg.content} for msg in history]
 
-            # Try MCP-powered agent first, fall back to direct Gemini
+            # Try MCP-powered agent (stdio subprocess), fall back to direct LLM
             response_text, task_updated = await self._call_agent_with_mcp(user_id, message, messages)
 
             await self.save_message(conversation.id, "assistant", response_text)
@@ -141,46 +146,22 @@ class ChatService:
         self, user_id: int, message: str, history: list[dict]
     ) -> tuple[str, bool]:
         """
-        T089: Call AI agent with MCP server connection.
-        The Agents SDK connects to the MCP server via SSE, discovers tools,
-        and lets the LLM decide which tools to call.
+        T099: Call AI agent with MCP server via stdio transport.
+        The Agents SDK spawns the MCP server as a subprocess,
+        discovers tools via stdin/stdout, and lets the LLM decide which to call.
         """
         from agents import Agent, Runner
         from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
-        from agents.mcp import MCPServerSse
+        from agents.mcp import MCPServerStdio
         from openai import AsyncOpenAI
 
-        import httpx
-
-        mcp_url = settings.mcp_server_url
-        if not mcp_url or mcp_url == "http://localhost:5001":
-            logger.info("No MCP server URL configured, falling back to direct Gemini call")
-            return await self._call_gemini_direct(user_id, message, history)
-
-        # Wake up MCP server first (HF Spaces sleeps after inactivity)
-        max_wake_attempts = 3
-        for attempt in range(max_wake_attempts):
-            try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    resp = await client.get(f"{mcp_url}/health")
-                    if resp.status_code == 200:
-                        logger.info(f"MCP server awake (attempt {attempt + 1})")
-                        break
-            except Exception as e:
-                logger.info(f"MCP wake attempt {attempt + 1}/{max_wake_attempts}: {e}")
-                if attempt < max_wake_attempts - 1:
-                    import asyncio
-                    await asyncio.sleep(5)  # Wait 5s between retries
-        else:
-            logger.warning("MCP server did not wake up after retries, falling back to Gemini")
-            return await self._call_gemini_direct(user_id, message, history)
-
-        sse_url = f"{mcp_url}/sse"
-        mcp_server = MCPServerSse(
-            params={"url": sse_url, "timeout": 30, "sse_read_timeout": 120},
+        mcp_server = MCPServerStdio(
+            params={
+                "command": sys.executable,
+                "args": [MCP_SERVER_SCRIPT],
+            },
             cache_tools_list=True,
             name="task-management-mcp",
-            client_session_timeout_seconds=30,
         )
 
         try:
@@ -217,15 +198,15 @@ class ChatService:
                 return response_text, task_updated
 
         except Exception as e:
-            logger.warning(f"MCP agent failed, falling back to direct Gemini: {e}")
-            return await self._call_gemini_direct(user_id, message, history)
+            logger.warning(f"MCP agent failed, falling back to direct LLM: {e}")
+            return await self._call_llm_direct(user_id, message, history)
 
-    async def _call_gemini_direct(
+    async def _call_llm_direct(
         self, user_id: int, message: str, history: list[dict]
     ) -> tuple[str, bool]:
         """
-        Fallback: Direct Gemini API call without MCP tools.
-        Used when MCP server is unavailable.
+        Fallback: Direct LLM API call without MCP tools.
+        Used when MCP subprocess is unavailable.
         """
         import asyncio
         from openai import AsyncOpenAI
@@ -249,19 +230,19 @@ class ChatService:
             return response.choices[0].message.content or "I'm not sure how to help with that.", False
 
         except asyncio.TimeoutError:
-            logger.warning("Gemini API call timed out")
+            logger.warning("LLM API call timed out")
             return "I'm taking longer than expected to respond. Please try again in a moment.", False
         except TimeoutException:
-            logger.warning("Gemini API request timed out")
+            logger.warning("LLM API request timed out")
             return "The AI service is slow to respond. Please try again shortly.", False
         except Exception as e:
             error_msg = str(e).lower()
             if "rate limit" in error_msg or "quota" in error_msg:
-                logger.warning(f"Gemini API rate limited: {e}")
+                logger.warning(f"LLM API rate limited: {e}")
                 return "I'm receiving too many requests right now. Please wait a moment and try again.", False
             elif "api key" in error_msg or "authentication" in error_msg:
-                logger.error(f"Gemini API authentication error: {e}")
+                logger.error(f"LLM API authentication error: {e}")
                 return "There's a configuration issue with the AI service. Please contact support.", False
             else:
-                logger.error(f"Error calling Gemini API: {e}")
+                logger.error(f"Error calling LLM API: {e}")
                 return "I'm having trouble processing that request. Please try again.", False

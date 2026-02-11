@@ -155,7 +155,7 @@ As a user, I want to open and close the chat sidebar with a button, so I can acc
 - **FR-023**: System MUST associate all operations with the authenticated user
 
 #### Architecture
-- **FR-024**: MCP Server MUST run as a separate service
+- **FR-024**: MCP Server MUST run as a separate process (originally separate service; now subprocess via stdio transport due to HF Spaces DNS limitation)
 - **FR-025**: MCP Server MUST be stateless (no in-memory state between requests)
 - **FR-026**: Chat endpoint MUST be stateless (conversation state in database only)
 
@@ -256,6 +256,26 @@ As a user, I want the AI chatbot to use LLM reasoning (via MCP tools) instead of
 
 ---
 
+### User Story 9 - Bundle MCP Server via Stdio Transport (Priority: P1)
+
+As a developer, I want the MCP server to run as a subprocess inside the backend container using stdio transport, so the chatbot works reliably on HF Spaces where inter-container DNS resolution is blocked.
+
+**Why this priority**: HF Spaces containers cannot resolve other HF Spaces hostnames (`[Errno -2] Name or service not known`). The SSE transport approach (US8) fails at the network level. Without this fix, the MCP-powered chatbot does not work in production — it always falls back to plain LLM chat without tools.
+
+**Independent Test**: Send "add buy milk" in the chat and verify a task is actually created in the database (not just an LLM text response).
+
+**Acceptance Scenarios**:
+
+1. **Given** the backend container bundles MCP server code, **When** a user sends a chat message, **Then** the Agents SDK spawns `mcp_server/server_stdio.py` as a subprocess and communicates via stdin/stdout
+2. **Given** the stdio MCP server is running, **When** the LLM decides to call `add_task`, **Then** the tool executes against Neon PostgreSQL and a task row is inserted
+3. **Given** the subprocess approach, **When** the backend is deployed on HF Spaces, **Then** no external DNS resolution is needed (all communication is in-process)
+4. **Given** the subprocess fails to start, **When** a user sends a chat message, **Then** the system falls back to plain LLM chat with a user-friendly message
+5. **Given** the MCP server code is bundled in the backend, **When** the backend container builds, **Then** all MCP dependencies (`mcp[cli]`, `asyncpg`) are included in the Dockerfile
+
+**Architecture change**: MCP transport switches from SSE (network-based, `MCPServerSse`) to stdio (subprocess-based, `MCPServerStdio`). MCP server code (`server_stdio.py`, `tools.py`, `db.py`) is copied into `phase-02/backend/mcp_server/` and runs as a child process of the FastAPI backend. The separate HF Space (`anusbutt/mcp-servers`) remains available for external testing but is no longer required by the backend.
+
+---
+
 ## Risks
 
 - **LLM Response Variability**: AI responses may vary; mitigate with clear system prompts and tool definitions
@@ -264,3 +284,4 @@ As a user, I want the AI chatbot to use LLM reasoning (via MCP tools) instead of
 - **Railway free tier cold starts**: 10-30s wake time after inactivity; mitigate with user-facing loading states
 - **Vercel rewrite timeout**: 10s limit on free tier; mitigate with fast backend responses
 - **Cross-origin cookies**: Some browsers block third-party cookies; mitigated by Vercel rewrite proxy making requests same-origin
+- **HF Spaces inter-container DNS**: Containers cannot resolve other HF Spaces hostnames; mitigated by bundling MCP server in backend container using stdio transport

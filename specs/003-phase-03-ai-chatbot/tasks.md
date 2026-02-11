@@ -364,7 +364,10 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 | 7 | US4 Delete | 3 | 1 |
 | 8 | US5 Update | 3 | 1 |
 | 9 | Polish | 12 | 6 |
-| **Total** | | **70** | **24** |
+| 10 | Deployment (Vercel + HF) | 11 | 0 |
+| 11 | MCP Deploy (SSE) | 12 | 0 |
+| 12 | MCP Stdio Transport | 11 | 3 |
+| **Total** | | **104** | **27** |
 
 ### Tasks per User Story
 
@@ -512,6 +515,71 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 
 ---
 
+## Phase 12: MCP Stdio Transport — Bundle MCP in Backend (User Story 9)
+
+**Purpose**: Switch from SSE (network) to stdio (subprocess) MCP transport to bypass HF Spaces inter-container DNS limitation
+
+**Context**: HF Spaces containers cannot DNS-resolve other HF Spaces hostnames (`[Errno -2] Name or service not known`). MCPServerSse fails. MCPServerStdio runs the MCP server as a subprocess inside the backend container — no network needed.
+
+**Depends on**: Phase 11 (MCP server code must exist)
+
+### Bundle MCP Server Code
+
+- [ ] T094 [P] [US9] Create `phase-02/backend/mcp_server/__init__.py` — empty package init
+  - **Acceptance**: Directory `mcp_server/` exists with `__init__.py`
+  - **Test**: `python -c "import mcp_server"` succeeds
+
+- [ ] T095 [P] [US9] Copy `phase-03/mcp-servers/tools.py` to `phase-02/backend/mcp_server/tools.py`
+  - **Acceptance**: File contains all 5 MCP tool functions (add_task, list_tasks, complete_task, delete_task, update_task)
+  - **Test**: File exists and is valid Python
+
+- [ ] T096 [P] [US9] Copy `phase-03/mcp-servers/db.py` to `phase-02/backend/mcp_server/db.py`
+  - **Acceptance**: File contains async database connection logic
+  - **Test**: File exists and is valid Python
+
+- [ ] T097 [US9] Create `phase-02/backend/mcp_server/server_stdio.py` — stdio entrypoint that registers MCP tools and runs via `mcp.run(transport="stdio")`
+  - **Acceptance**: Script registers all 5 tools and uses stdio transport (not HTTP/SSE)
+  - **Test**: `echo '{}' | python mcp_server/server_stdio.py` starts without error (then exits on EOF)
+
+### Update Backend Dependencies
+
+- [ ] T098 [US9] Add MCP dependencies to `phase-02/backend/Dockerfile` — install `mcp[cli]` and ensure `asyncpg` is available
+  - **Acceptance**: Dockerfile RUN includes `mcp[cli]` in pip install
+  - **Test**: `docker build` succeeds
+
+### Refactor Chat Service
+
+- [ ] T099 [US9] Refactor `phase-02/backend/app/services/chat_service.py` — replace `MCPServerSse` with `MCPServerStdio`, remove MCP wake-up pings, point to `mcp_server/server_stdio.py`
+  - **Acceptance**: `_call_agent_with_mcp()` uses `MCPServerStdio` with `command="python"` and `args=["mcp_server/server_stdio.py"]`
+  - **Test**: No `httpx` or SSE-related imports for MCP connection
+  - **Fallback**: If subprocess fails to start, fall back to `_call_gemini_direct()`
+
+- [ ] T100 [US9] Remove `MCP_SERVER_URL` dependency from `phase-02/backend/app/config.py` — stdio transport doesn't need a URL (optional: keep for backward compat but ignore)
+  - **Acceptance**: Chat service no longer reads `settings.mcp_server_url` for tool execution
+  - **Test**: Backend starts and chat works without `MCP_SERVER_URL` env var
+
+### Deploy and Verify
+
+- [ ] T101 [US9] Push updated backend code to HF Space (`anusbutt/todo-app`) and trigger rebuild
+  - **Acceptance**: Container builds successfully with bundled MCP server
+  - **Test**: Container logs show successful startup, no missing module errors
+
+- [ ] T102 [US9] Test LLM-driven task creation: send "I really need to grab some milk" in chat
+  - **Acceptance**: Task is created in database via MCP tool (not keyword matching)
+  - **Test**: Task appears in task list; backend logs show `tool_call_item` in agent response
+
+- [ ] T103 [US9] Test multi-step: send "Add buy groceries and show my tasks"
+  - **Acceptance**: Task created AND task list returned in one response
+  - **Test**: Chat response confirms creation and shows full list
+
+- [ ] T104 [US9] Test fallback: temporarily break `server_stdio.py` and send a chat message
+  - **Acceptance**: Backend falls back to plain LLM chat with user-friendly message
+  - **Test**: No 500 error; chat returns helpful response without tools
+
+**Checkpoint**: MCP-powered chatbot works end-to-end on HF Spaces via stdio transport. LLM decides tool calls, tasks are created/listed/completed/deleted via MCP tools, no inter-container DNS needed.
+
+---
+
 ## Notes
 
 - All tasks include exact file paths
@@ -522,3 +590,4 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 - MCP tools are independently testable via curl to port 5001
 - Phase 10 (deployment): 11 tasks for Vercel + HF Spaces migration
 - Phase 11 (MCP deploy): 12 tasks for MCP server deployment + Agents SDK integration
+- Phase 12 (stdio transport): 11 tasks for bundling MCP in backend via stdio transport
