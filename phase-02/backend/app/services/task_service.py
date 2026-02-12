@@ -5,7 +5,7 @@ Task service layer for task management.
 Handles business logic for task CRUD operations including priority and tags.
 """
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlmodel import select, func, delete
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -13,6 +13,46 @@ from app.models.task import Task
 from app.models.tag import Tag
 from app.models.task_tag import TaskTag
 from app.schemas.task import TaskCreate, TaskUpdate
+
+
+def _calculate_next_due_date(current_due: Optional[datetime], pattern: str) -> datetime:
+    """Calculate the next due date based on recurrence pattern."""
+    base = current_due if current_due else datetime.utcnow()
+    if pattern == "daily":
+        return base + timedelta(days=1)
+    elif pattern == "weekly":
+        return base + timedelta(weeks=1)
+    elif pattern == "monthly":
+        # Advance by one month, handling month-end edge cases
+        month = base.month % 12 + 1
+        year = base.year + (1 if base.month == 12 else 0)
+        day = min(base.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+                              31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+        return base.replace(year=year, month=month, day=day)
+    return base + timedelta(days=1)
+
+
+async def _create_next_recurring_task(session: AsyncSession, completed_task) -> Optional["Task"]:
+    """Auto-create the next instance of a recurring task after completion."""
+    if not completed_task.recurrence_pattern:
+        return None
+
+    next_due = _calculate_next_due_date(completed_task.due_date, completed_task.recurrence_pattern)
+
+    new_task = Task(
+        user_id=completed_task.user_id,
+        title=completed_task.title,
+        description=completed_task.description,
+        completed=False,
+        priority=completed_task.priority,
+        recurrence_pattern=completed_task.recurrence_pattern,
+        recurrence_parent_id=completed_task.id,
+        due_date=next_due,
+    )
+    session.add(new_task)
+    await session.commit()
+    await session.refresh(new_task)
+    return new_task
 
 
 async def _sync_task_tags(
@@ -66,12 +106,19 @@ async def create_task(session: AsyncSession, task_data: TaskCreate, user_id: int
         4. Associate tags via task_tags junction table
         5. Return created task with tags
     """
+    # Calculate initial due_date if recurrence is set
+    due_date = None
+    if task_data.recurrence_pattern:
+        due_date = _calculate_next_due_date(None, task_data.recurrence_pattern)
+
     new_task = Task(
         user_id=user_id,
         title=task_data.title,
         description=task_data.description,
         completed=False,
         priority=task_data.priority,
+        recurrence_pattern=task_data.recurrence_pattern,
+        due_date=due_date,
     )
 
     session.add(new_task)
@@ -155,6 +202,10 @@ async def update_task_status(session: AsyncSession, task_id: int, user_id: int) 
     session.add(task)
     await session.commit()
     await session.refresh(task)
+
+    # Auto-create next recurring task on completion
+    if task.completed:
+        await _create_next_recurring_task(session, task)
 
     return task
 
@@ -241,6 +292,10 @@ async def update_task(
         task.completed = task_data.completed
     if task_data.priority is not None:
         task.priority = task_data.priority
+    if task_data.recurrence_pattern is not None:
+        task.recurrence_pattern = task_data.recurrence_pattern
+        if task_data.recurrence_pattern and not task.due_date:
+            task.due_date = _calculate_next_due_date(None, task_data.recurrence_pattern)
 
     # Update timestamp
     task.updated_at = datetime.utcnow()

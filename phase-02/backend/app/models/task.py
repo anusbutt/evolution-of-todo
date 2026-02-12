@@ -53,6 +53,11 @@ class Task(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+    # Recurrence fields (US11)
+    recurrence_pattern: Optional[str] = Field(default=None, max_length=10, index=True)
+    recurrence_parent_id: Optional[int] = Field(default=None, foreign_key="tasks.id", ondelete="SET NULL")
+    due_date: Optional[datetime] = Field(default=None)
+
     # Relationships
     tags: List["Tag"] = Relationship(
         back_populates="tasks",

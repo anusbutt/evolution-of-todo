@@ -42,6 +42,9 @@ export interface Task {
   completed: boolean
   priority: Priority
   tags: Tag[]
+  recurrence_pattern: 'daily' | 'weekly' | 'monthly' | null
+  due_date: string | null
+  recurrence_parent_id: number | null
   created_at: string
   updated_at: string
 }
@@ -78,6 +81,9 @@ export interface TaskResponse {
   completed: boolean
   priority: Priority
   tags: Tag[]
+  recurrence_pattern: 'daily' | 'weekly' | 'monthly' | null
+  due_date: string | null
+  recurrence_parent_id: number | null
   created_at: string
   updated_at: string
 }
@@ -109,6 +115,7 @@ export interface TaskCreatePayload {
   description?: string
   priority?: Priority
   tag_ids?: number[]
+  recurrence_pattern?: 'daily' | 'weekly' | 'monthly'
 }
 
 /**

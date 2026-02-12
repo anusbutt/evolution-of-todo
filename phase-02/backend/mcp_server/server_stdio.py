@@ -38,6 +38,7 @@ async def handle_list_tools():
                     "title": {"type": "string", "description": "The task title (required)", "maxLength": 255},
                     "description": {"type": "string", "description": "Optional task description", "maxLength": 1000},
                     "priority": {"type": "string", "description": "Priority level: P1 (High), P2 (Medium), P3 (Low). Default: P2"},
+                    "recurrence_pattern": {"type": "string", "description": "Recurrence: 'daily', 'weekly', or 'monthly'. Omit for one-time tasks.", "enum": ["daily", "weekly", "monthly"]},
                 },
                 "required": ["user_id", "title"],
             },
@@ -106,6 +107,7 @@ async def handle_call_tool(name: str, arguments: dict):
             title=args["title"],
             description=args.get("description"),
             priority=args.get("priority"),
+            recurrence_pattern=args.get("recurrence_pattern"),
         ),
         "list_tasks": lambda args: list_tasks(
             user_id=args["user_id"],

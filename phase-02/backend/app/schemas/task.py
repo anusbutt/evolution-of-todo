@@ -27,6 +27,7 @@ class TaskCreate(BaseModel):
     description: Optional[str] = Field(default=None, max_length=1000, description="Task description")
     priority: Priority = Field(default=Priority.P2, description="Task priority (P1=High, P2=Medium, P3=Low)")
     tag_ids: Optional[List[int]] = Field(default=None, description="List of tag IDs to associate")
+    recurrence_pattern: Optional[str] = Field(default=None, description="Recurrence: 'daily', 'weekly', or 'monthly'")
 
     @field_validator("title")
     @classmethod
@@ -35,6 +36,14 @@ class TaskCreate(BaseModel):
         if not v.strip():
             raise ValueError("Title cannot be only whitespace")
         return v.strip()
+
+    @field_validator("recurrence_pattern")
+    @classmethod
+    def validate_recurrence_pattern(cls, v: Optional[str]) -> Optional[str]:
+        """Validate recurrence pattern is a valid value."""
+        if v is not None and v not in ("daily", "weekly", "monthly"):
+            raise ValueError("recurrence_pattern must be 'daily', 'weekly', or 'monthly'")
+        return v
 
 
 class TaskUpdate(BaseModel):
@@ -49,6 +58,7 @@ class TaskUpdate(BaseModel):
     completed: Optional[bool] = Field(default=None)
     priority: Optional[Priority] = Field(default=None, description="Task priority")
     tag_ids: Optional[List[int]] = Field(default=None, description="List of tag IDs to associate")
+    recurrence_pattern: Optional[str] = Field(default=None, description="Recurrence: 'daily', 'weekly', or 'monthly'")
 
     @field_validator("title")
     @classmethod
@@ -57,6 +67,14 @@ class TaskUpdate(BaseModel):
         if v is not None and not v.strip():
             raise ValueError("Title cannot be only whitespace")
         return v.strip() if v is not None else None
+
+    @field_validator("recurrence_pattern")
+    @classmethod
+    def validate_recurrence_pattern(cls, v: Optional[str]) -> Optional[str]:
+        """Validate recurrence pattern is a valid value."""
+        if v is not None and v not in ("daily", "weekly", "monthly"):
+            raise ValueError("recurrence_pattern must be 'daily', 'weekly', or 'monthly'")
+        return v
 
 
 class TaskResponse(BaseModel):
@@ -73,6 +91,9 @@ class TaskResponse(BaseModel):
     completed: bool
     priority: Priority
     tags: List[TagResponse] = Field(default_factory=list)
+    recurrence_pattern: Optional[str] = None
+    due_date: Optional[datetime] = None
+    recurrence_parent_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

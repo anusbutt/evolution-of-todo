@@ -22,3 +22,8 @@ class Task(SQLModel, table=True):
     priority: str = Field(default="P2", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Recurrence fields (US11)
+    recurrence_pattern: Optional[str] = Field(default=None, max_length=10)
+    recurrence_parent_id: Optional[int] = Field(default=None)
+    due_date: Optional[datetime] = Field(default=None)

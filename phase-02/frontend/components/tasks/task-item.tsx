@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import { clsx } from 'clsx'
-import { Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Trash2, ChevronDown, ChevronUp, Repeat, Calendar } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { PriorityBadge, getPriorityBorderClass } from '@/components/ui/priority-badge'
@@ -70,9 +70,15 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Header: Priority badge + Title */}
+          {/* Header: Priority badge + Recurrence badge + Title */}
           <div className="flex items-center gap-2 flex-wrap">
             <PriorityBadge priority={task.priority} size="sm" />
+            {task.recurrence_pattern && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                <Repeat className="w-3 h-3" />
+                {task.recurrence_pattern.charAt(0).toUpperCase() + task.recurrence_pattern.slice(1)}
+              </span>
+            )}
             <h3
               className={clsx(
                 'text-lg font-medium text-gray-900 dark:text-white',
@@ -122,6 +128,15 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
           {/* Meta info */}
           <div className="mt-3 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
             <span>Created: {formatDate(task.created_at)}</span>
+            {task.due_date && (
+              <>
+                <span className="text-gray-400 dark:text-gray-600">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  Due: {formatDate(task.due_date)}
+                </span>
+              </>
+            )}
             <span className="text-gray-400 dark:text-gray-600">•</span>
             <span>#{task.id}</span>
           </div>
