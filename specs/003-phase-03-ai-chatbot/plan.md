@@ -500,3 +500,62 @@ User: "دودھ خریدنا ہے"  →  LLM detects Urdu
                           →  calls add_task(title="دودھ خریدنا")
                           →  responds in Urdu
 ```
+
+### Recurring Tasks
+
+**Approach**: Database-driven recurrence with auto-creation on completion.
+
+**Schema changes** (3 nullable columns on `tasks`):
+
+```sql
+recurrence_rule  VARCHAR(50)  -- 'daily', 'weekly', 'monthly', or NULL
+recurrence_day   INTEGER      -- day of week (0=Mon..6=Sun) or day of month (1-31)
+next_due_date    TIMESTAMP    -- when the task is next due
+```
+
+**Recurrence patterns**:
+
+| User says | recurrence_rule | recurrence_day | next_due_date |
+|-----------|----------------|----------------|---------------|
+| "every day" | `daily` | NULL | tomorrow |
+| "every Friday" | `weekly` | `4` (Friday) | next Friday |
+| "on the 1st" | `monthly` | `1` | 1st of next month |
+| (no recurrence) | NULL | NULL | NULL |
+
+**Completion flow**:
+
+```
+User completes recurring task (id=50)
+         │
+         ▼
+Backend: mark task 50 as completed
+         │
+         ▼
+Backend: task.recurrence_rule is not NULL?
+         │ YES
+         ▼
+Backend: create NEW task (id=51) with:
+  - same title, description, priority, recurrence_rule, recurrence_day
+  - next_due_date = calculate_next_date(task 50)
+  - completed = False
+         │
+         ▼
+Frontend: task list refreshes → old task done, new task appears
+```
+
+**Files changed**:
+
+```text
+phase-02/backend/
+├── alembic/versions/xxx_add_recurrence.py  # NEW: migration (3 columns)
+├── app/
+│   ├── routes/tasks.py                     # MODIFY: auto-create next on complete
+│   └── services/recurrence.py              # NEW: date calculation logic
+├── mcp_server/
+│   ├── models.py                           # MODIFY: add 3 fields
+│   ├── tools.py                            # MODIFY: add_task + complete_task
+│   └── server_stdio.py                     # MODIFY: tool schemas
+
+phase-02/frontend/
+└── components/tasks/task-item.tsx          # MODIFY: recurrence badge
+```

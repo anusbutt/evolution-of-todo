@@ -368,7 +368,8 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 | 11 | MCP Deploy (SSE) | 12 | 0 |
 | 12 | MCP Stdio Transport | 11 | 3 |
 | 13 | Urdu Language Support | 5 | 0 |
-| **Total** | | **109** | **27** |
+| 14 | Recurring Tasks | 15 | 2 |
+| **Total** | | **124** | **29** |
 
 ### Tasks per User Story
 
@@ -617,6 +618,94 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 
 ---
 
+## Phase 14: Recurring Tasks (User Story 11)
+
+**Purpose**: Enable users to create recurring tasks (daily, weekly, monthly) that auto-recreate on completion
+
+**Context**: Requires database migration, backend logic, MCP tool updates, system prompt update, and a small frontend change.
+
+**Depends on**: Phase 12 (MCP stdio must be working)
+
+### Database Migration
+
+- [ ] T110 [US11] Create Alembic migration `xxx_add_recurrence.py` — add 3 nullable columns to `tasks` table: `recurrence_rule` (VARCHAR 50), `recurrence_day` (INTEGER), `next_due_date` (TIMESTAMP)
+  - **Acceptance**: Migration runs without errors, columns exist with NULL defaults
+  - **Test**: `alembic upgrade head` succeeds; existing tasks unaffected
+
+- [ ] T111 [US11] Run migration on Neon database
+  - **Acceptance**: Neon `tasks` table has 3 new columns
+  - **Test**: `SELECT recurrence_rule FROM tasks LIMIT 1` returns NULL
+
+### Backend Models
+
+- [ ] T112 [P] [US11] Add 3 recurrence fields to `phase-02/backend/mcp_server/models.py` — `recurrence_rule: Optional[str]`, `recurrence_day: Optional[int]`, `next_due_date: Optional[datetime]`
+  - **Acceptance**: Task model has 3 new Optional fields defaulting to None
+  - **Test**: Model imports without error
+
+- [ ] T113 [P] [US11] Add recurrence fields to backend Task model in `phase-02/backend/app/models/task.py` (if separate from MCP model)
+  - **Acceptance**: Backend Task model matches MCP model
+  - **Test**: Model imports without error
+
+### Recurrence Logic
+
+- [ ] T114 [US11] Create `phase-02/backend/app/services/recurrence.py` — `calculate_next_date(recurrence_rule, recurrence_day, current_date)` function
+  - **Acceptance**: Returns correct next date for daily, weekly, monthly patterns
+  - **Test**: `calculate_next_date("daily", None, Monday)` → Tuesday; `calculate_next_date("weekly", 4, Monday)` → Friday; `calculate_next_date("monthly", 15, Jan 20)` → Feb 15
+
+### MCP Tool Updates
+
+- [ ] T115 [US11] Update `add_task` in `phase-02/backend/mcp_server/tools.py` — accept optional `recurrence` param (e.g., "daily", "weekly:friday", "monthly:15"), parse into `recurrence_rule`, `recurrence_day`, `next_due_date`
+  - **Acceptance**: `add_task(title="exercise", recurrence="daily")` creates task with `recurrence_rule="daily"` and `next_due_date=tomorrow`
+  - **Test**: Tool returns task with recurrence fields populated
+
+- [ ] T116 [US11] Update `complete_task` in `phase-02/backend/mcp_server/tools.py` — after marking complete, if task has `recurrence_rule`, auto-create a new task with same title/recurrence and next due date
+  - **Acceptance**: Completing a recurring task creates a new pending task with updated `next_due_date`
+  - **Test**: Complete task → new task appears with correct next date
+
+- [ ] T117 [US11] Update tool schemas in `phase-02/backend/mcp_server/server_stdio.py` — add `recurrence` property to `add_task` input schema
+  - **Acceptance**: LLM can see recurrence parameter in tool description
+  - **Test**: ListToolsRequest shows recurrence in add_task schema
+
+### Backend Route Update
+
+- [ ] T118 [US11] Update complete task endpoint in `phase-02/backend/app/routes/tasks.py` — add auto-creation logic for recurring tasks (same as MCP tool, for UI-based completion)
+  - **Acceptance**: Completing a recurring task via UI also creates the next instance
+  - **Test**: Click complete on recurring task → new task appears
+
+### System Prompt Update
+
+- [ ] T119 [US11] Update `SYSTEM_PROMPT` in `phase-02/backend/app/services/chat_service.py` — add recurrence instructions for the LLM
+  - **Acceptance**: Prompt includes recurrence patterns and examples
+  - **Test**: "remind me to exercise every day" → LLM calls add_task with recurrence="daily"
+
+### Frontend Update
+
+- [ ] T120 [US11] Add recurrence indicator to `phase-02/frontend/components/tasks/task-item.tsx` — show a small recurring icon/badge for tasks with `recurrence_rule`
+  - **Acceptance**: Recurring tasks have a visible indicator distinguishing them from one-time tasks
+  - **Test**: Recurring task shows icon; non-recurring task does not
+
+### Deploy and Verify
+
+- [ ] T121 [US11] Push updated code to HF Space and verify deployment
+  - **Acceptance**: Container rebuilds successfully
+  - **Test**: Health check passes
+
+- [ ] T122 [US11] Test daily recurrence: "remind me to exercise every day" → complete → verify new task appears
+  - **Acceptance**: Task created, completed, new instance auto-created for tomorrow
+  - **Test**: Task list shows new pending "exercise" task after completion
+
+- [ ] T123 [US11] Test weekly recurrence: "buy groceries every Friday" → complete → verify next Friday task appears
+  - **Acceptance**: New task has `next_due_date` = next Friday
+  - **Test**: Task list shows new "buy groceries" for next Friday
+
+- [ ] T124 [US11] Test non-recurring task unaffected: complete a normal task → verify no new task created
+  - **Acceptance**: Existing behavior unchanged for tasks without recurrence
+  - **Test**: Complete normal task → no duplicate appears
+
+**Checkpoint**: Recurring tasks work end-to-end via chat and UI. Daily/weekly/monthly patterns supported. Completing a recurring task auto-creates the next instance.
+
+---
+
 ## Notes
 
 - All tasks include exact file paths
@@ -629,3 +718,4 @@ Task T056: "Implement update_task MCP tool in mcp-server/tools/update_task.py"
 - Phase 11 (MCP deploy): 12 tasks for MCP server deployment + Agents SDK integration
 - Phase 12 (stdio transport): 11 tasks for bundling MCP in backend via stdio transport
 - Phase 13 (Urdu support): 5 tasks for multilingual chatbot via prompt update
+- Phase 14 (recurring tasks): 15 tasks for daily/weekly/monthly recurrence with auto-creation

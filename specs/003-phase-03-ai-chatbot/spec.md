@@ -295,6 +295,27 @@ As a user, I want to interact with the chatbot in Urdu, so I can manage my tasks
 
 ---
 
+### User Story 11 - Recurring Tasks (Priority: P3)
+
+As a user, I want to create recurring tasks (daily, weekly, monthly), so that routine tasks automatically reappear after I complete them.
+
+**Why this priority**: Nice-to-have enhancement that adds real productivity value. Requires database migration, backend logic, MCP tool updates, and a small frontend change.
+
+**Independent Test**: Create a daily recurring task via chat, mark it complete, and verify a new instance automatically appears for the next day.
+
+**Acceptance Scenarios**:
+
+1. **Given** a user says "remind me to exercise every day", **When** the LLM processes the message, **Then** a task is created with `recurrence_rule=daily` and `next_due_date=tomorrow`
+2. **Given** a user says "buy groceries every Friday", **When** the LLM processes the message, **Then** a task is created with `recurrence_rule=weekly`, `recurrence_day=4` (Friday), and `next_due_date=next Friday`
+3. **Given** a user says "pay rent on the 1st", **When** the LLM processes the message, **Then** a task is created with `recurrence_rule=monthly`, `recurrence_day=1`, and `next_due_date=1st of next month`
+4. **Given** a recurring task is marked complete, **When** the backend processes the completion, **Then** the current task is marked complete AND a new task is auto-created with the same title, recurrence rule, and the next due date
+5. **Given** a non-recurring task is marked complete, **When** the backend processes the completion, **Then** no new task is created (existing behavior unchanged)
+6. **Given** a recurring task exists, **When** the user views the task list, **Then** a recurrence indicator is visible on the task item
+
+**Database changes**: 3 new columns on `tasks` table — `recurrence_rule` (VARCHAR), `recurrence_day` (INTEGER), `next_due_date` (TIMESTAMP). All nullable, defaulting to NULL (non-recurring).
+
+---
+
 ## Risks
 
 - **LLM Response Variability**: AI responses may vary; mitigate with clear system prompts and tool definitions
