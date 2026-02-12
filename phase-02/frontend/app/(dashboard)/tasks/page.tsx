@@ -229,7 +229,7 @@ export default function TasksPage() {
     filters.status !== 'all'
 
   // Task CRUD handlers
-  const handleCreateTask = async (data: { title: string; description?: string; priority?: Priority; tag_ids?: number[] }) => {
+  const handleCreateTask = async (data: { title: string; description?: string; priority?: Priority; tag_ids?: number[]; recurrence_pattern?: string | null }) => {
     setIsSubmitting(true)
 
     try {
@@ -252,7 +252,7 @@ export default function TasksPage() {
     }
   }
 
-  const handleEditTask = async (data: { title: string; description?: string; priority?: Priority; tag_ids?: number[] }) => {
+  const handleEditTask = async (data: { title: string; description?: string; priority?: Priority; tag_ids?: number[]; recurrence_pattern?: string | null }) => {
     if (!editingTask) return
 
     setIsSubmitting(true)
@@ -323,6 +323,8 @@ export default function TasksPage() {
 
     try {
       await apiRequest<Task>(`/api/tasks/${taskId}/status`, { method: 'PATCH' })
+      // Refetch all tasks to pick up auto-created recurring task instances
+      await fetchTasks()
       await fetchStats()
     } catch (err) {
       setTasks(previousTasks)

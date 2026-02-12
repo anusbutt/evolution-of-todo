@@ -11,7 +11,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { clsx } from 'clsx'
-import { Check } from 'lucide-react'
+import { Check, Repeat } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { PrioritySelect } from '@/components/ui/priority-select'
@@ -32,6 +32,7 @@ const taskFormSchema = z.object({
     .default(''),
   priority: z.enum(['P1', 'P2', 'P3']).default('P2'),
   tag_ids: z.array(z.number()).optional().default([]),
+  recurrence_pattern: z.enum(['daily', 'weekly', 'monthly']).nullable().optional().default(null),
 })
 
 type TaskFormData = z.infer<typeof taskFormSchema>
@@ -69,6 +70,7 @@ export function TaskForm({
       description: task?.description || '',
       priority: task?.priority || 'P2',
       tag_ids: task?.tags?.map((t) => t.id) || [],
+      recurrence_pattern: task?.recurrence_pattern || null,
     },
   })
 
@@ -82,6 +84,7 @@ export function TaskForm({
         description: task.description || '',
         priority: task.priority,
         tag_ids: task.tags?.map((t) => t.id) || [],
+        recurrence_pattern: task.recurrence_pattern || null,
       })
     }
   }, [task, reset])
@@ -164,6 +167,43 @@ export function TaskForm({
               onChange={field.onChange}
               className="w-full sm:w-48"
             />
+          )}
+        />
+      </div>
+
+      {/* Recurrence */}
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Repeat
+        </label>
+        <Controller
+          name="recurrence_pattern"
+          control={control}
+          render={({ field }) => (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: null, label: 'None' },
+                { value: 'daily' as const, label: 'Daily' },
+                { value: 'weekly' as const, label: 'Weekly' },
+                { value: 'monthly' as const, label: 'Monthly' },
+              ].map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  onClick={() => field.onChange(option.value)}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm',
+                    'border transition-all duration-200',
+                    field.value === option.value
+                      ? 'bg-indigo-500/20 border-indigo-500/50 text-gray-900 dark:text-white'
+                      : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'
+                  )}
+                >
+                  {option.value && <Repeat className="w-3.5 h-3.5" />}
+                  {option.label}
+                </button>
+              ))}
+            </div>
           )}
         />
       </div>
